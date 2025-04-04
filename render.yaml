@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: uas-weather-checker
+    env: python
+    buildCommand: ""
+    startCommand: "python app.py"
