@@ -100,28 +100,35 @@ def get_taf_plain(metar_station):
     """
     url = f"https://aviationweather.gov/adds/dataserver_current/taf?station={metar_station}&hours=12&format=xml"
     try:
-        res = requests.get(url, headers=HEADERS)
+        res = requests.get(url, headers=HEADERS, timeout=5)
         if res.status_code == 200:
-            root = ET.fromstring(res.content)
-            # Try to directly find the raw_text element anywhere in the XML.
-            raw_text_elem = root.find(".//raw_text")
-            if raw_text_elem is not None and raw_text_elem.text:
-                raw_text = raw_text_elem.text
-                plain_text = raw_text
-                # Replace common TAF abbreviations with plain English.
-                replacements = {
-                    "FM": "From",
-                    "TEMPO": "Temporary",
-                    "BECMG": "Becoming",
-                    "PROB": "Probability",
-                    "CAVOK": "Ceiling And Visibility OK"
-                }
-                for abbr, full in replacements.items():
-                    plain_text = plain_text.replace(abbr, full)
-                return plain_text
+            try:
+                root = ET.fromstring(res.content)
+                raw_text_elem = root.find(".//raw_text")
+                if raw_text_elem is not None and raw_text_elem.text:
+                    raw_text = raw_text_elem.text
+                    plain_text = raw_text
+                    # Replace common TAF abbreviations with plain English.
+                    replacements = {
+                        "FM": "From",
+                        "TEMPO": "Temporary",
+                        "BECMG": "Becoming",
+                        "PROB": "Probability",
+                        "CAVOK": "Ceiling And Visibility OK"
+                    }
+                    for abbr, full in replacements.items():
+                        plain_text = plain_text.replace(abbr, full)
+                    return plain_text
+                else:
+                    return "TAF data unavailable"
+            except Exception as parse_err:
+                print("Error parsing TAF XML:", parse_err)
+                return "TAF data unavailable"
+        else:
+            return "TAF data unavailable"
     except Exception as e:
-        print("Error parsing TAF:", e)
-    return "TAF data unavailable"
+        print("Error fetching TAF:", e)
+        return "TAF data unavailable"
 
 
 @app.route("/", methods=["GET", "POST"])
