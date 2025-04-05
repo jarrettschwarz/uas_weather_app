@@ -3,6 +3,11 @@
 <head>
     <title>UAS Weather Checker</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .check-pass { color: green; font-weight: bold; }
+        .check-fail { color: red; font-weight: bold; }
+        .standard-box { background: #f8f9fa; padding: 1em; border-radius: 8px; }
+    </style>
 </head>
 <body class="container py-5">
     <h1 class="mb-4">FAA Part 107 UAS Weather Checker</h1>
@@ -25,21 +30,60 @@
     </form>
 
     {% if result %}
-        <h3 class="mt-5">Forecast for {{ result.site }} at {{ result.datetime }}</h3>
-        {% if selected_coords %}
+        <div class="mt-5">
+            <h3>Flight Conditions for {{ result.site }} at {{ result.datetime }}</h3>
             <p><strong>Coordinates:</strong> {{ selected_coords.lat }}, {{ selected_coords.lon }}</p>
-        {% endif %}
-        <ul class="list-group mb-4">
-            <li class="list-group-item"><strong>Forecast:</strong> {{ result.forecast }}</li>
-            <li class="list-group-item"><strong>Wind:</strong> {{ result.wind }}</li>
-            <li class="list-group-item"><strong>Go/No-Go:</strong> <strong>{{ result.go_nogo }}</strong></li>
-        </ul>
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="standard-box">
+                        <h5>Part 107 Weather Requirements</h5>
+                        <ul class="list-group">
+                            <li class="list-group-item">Visibility ≥ 3 statute miles</li>
+                            <li class="list-group-item">Cloud base ≥ 500 ft AGL</li>
+                            <li class="list-group-item">Wind ≤ 15.7 mph (7 m/s)</li>
+                            <li class="list-group-item">No rain, fog, thunderstorms, or snow</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Actual Conditions</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            Visibility: 
+                            <span class="{{ 'check-pass' if result.visibility_pass else 'check-fail' }}">
+                                {{ result.visibility }}
+                            </span>
+                        </li>
+                        <li class="list-group-item">
+                            Cloud Base:
+                            <span class="{{ 'check-pass' if result.cloud_pass else 'check-fail' }}">
+                                {{ result.cloud_base }} ft
+                            </span>
+                        </li>
+                        <li class="list-group-item">
+                            Wind:
+                            <span class="{{ 'check-pass' if result.wind_pass else 'check-fail' }}">
+                                {{ result.wind }}
+                            </span>
+                        </li>
+                        <li class="list-group-item">
+                            Forecast:
+                            <span class="{{ 'check-pass' if result.condition_pass else 'check-fail' }}">
+                                {{ result.forecast }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
-        <h4>METAR (Current Observation)</h4>
-        <p><code>{{ metar }}</code></p>
-
-        <h4>TAF (Aviation Forecast)</h4>
-        <p><code>{{ taf }}</code></p>
+            <div class="mt-4">
+                <h4>Go / No-Go: 
+                    <span class="{{ 'check-pass' if result.go_nogo == 'Go' else 'check-fail' }}">
+                        {{ result.go_nogo }}
+                    </span>
+                </h4>
+            </div>
+        </div>
     {% endif %}
 </body>
 </html>
