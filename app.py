@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 import requests
 from datetime import datetime, timezone, timedelta
 import pytz
+import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 
@@ -92,6 +93,37 @@ def get_metar_conditions(metar_station):
 
     return cloud_ft, vis_sm, cloud_label, sustained_wind, wind_str, condition
 
+def get_taf_plain(metar_station):
+    """
+    Fetches the TAF for the given station from aviationweather.gov,
+    parses the XML, and converts common abbreviations into plain English.
+    """
+    url = f"https://aviationweather.gov/adds/dataserver_current/taf?station={metar_station}&hours=12&format=xml"
+    try:
+        res = requests.get(url, headers=HEADERS)
+        if res.status_code == 200:
+            root = ET.fromstring(res.content)
+            # Try to directly find the raw_text element anywhere in the XML.
+            raw_text_elem = root.find(".//raw_text")
+            if raw_text_elem is not None and raw_text_elem.text:
+                raw_text = raw_text_elem.text
+                plain_text = raw_text
+                # Replace common TAF abbreviations with plain English.
+                replacements = {
+                    "FM": "From",
+                    "TEMPO": "Temporary",
+                    "BECMG": "Becoming",
+                    "PROB": "Probability",
+                    "CAVOK": "Ceiling And Visibility OK"
+                }
+                for abbr, full in replacements.items():
+                    plain_text = plain_text.replace(abbr, full)
+                return plain_text
+    except Exception as e:
+        print("Error parsing TAF:", e)
+    return "TAF data unavailable"
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
@@ -119,6 +151,9 @@ def index():
             # Use METAR for near-term conditions
             cloud_base, visibility, cloud_label, sustained_wind, wind_str, forecast = get_metar_conditions(metar_station)
             source = "metar"
+            # For near-term flights, we might not show TAF.
+            taf_text = None
+            taf_condition_pass = None
         else:
             # Use forecast for future conditions
             forecast_periods = get_forecast(forecast_url)
@@ -134,8 +169,11 @@ def index():
             cloud_label = "N/A (Forecast data)"
             visibility = 10.0  # Assume best-case if not provided
             source = "forecast"
+            # Get and process TAF data
+            taf_text = get_taf_plain(metar_station)
+            taf_condition_pass = not any(term in taf_text.lower() for term in BAD_CONDITIONS)
 
-        # Evaluate flight conditions against Part 107 requirements
+        # Evaluate flight conditions against Part 107 requirements (using sustained wind)
         wind_pass = sustained_wind <= MAX_WIND_MPH
         visibility_pass = visibility >= MIN_VISIBILITY_SM
         cloud_pass = cloud_base >= MIN_CLOUD_BASE_FT
@@ -156,7 +194,9 @@ def index():
             "cloud_pass": cloud_pass,
             "condition_pass": condition_pass,
             "go_nogo": "Go" if all_pass else "No-Go",
-            "source": source
+            "source": source,
+            "taf": taf_text,
+            "taf_pass": taf_condition_pass
         }
 
     return render_template("index.html", result=result, flight_sites=FLIGHT_SITES.keys(), selected_coords=selected_coords)
