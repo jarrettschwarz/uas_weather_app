@@ -30,55 +30,59 @@
     </form>
 
     {% if result %}
-        <div class="mt-5">
-            <h3>Flight Conditions for {{ result.site }} at {{ result.datetime }}</h3>
-            <p><strong>Coordinates:</strong> {{ selected_coords.lat }}, {{ selected_coords.lon }}</p>
-            <div class="row mt-4">
-                <div class="col-md-4">
-                    <div class="standard-box">
-                        <h5>Part 107 Weather Requirements</h5>
-                        <ul class="list-group">
-                            <li class="list-group-item">Visibility ≥ 3 statute miles</li>
-                            <li class="list-group-item">Cloud base ≥ 500 ft AGL</li>
-                            <li class="list-group-item">Wind ≤ 15.7 mph (7 m/s)</li>
-                            <li class="list-group-item">No rain, fog, thunderstorms, or snow</li>
-                        </ul>
-                    </div>
-                </div>
-
-                {% if result.source == 'metar' %}
-                <div class="col-md-8">
-                    <h5>Current METAR</h5>
+    <div class="mt-5">
+        <h3>Flight Conditions for {{ result.site }} at {{ result.datetime }}</h3>
+        <p><strong>Coordinates:</strong> {{ selected_coords.lat }}, {{ selected_coords.lon }}</p>
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="standard-box">
+                    <h5>Part 107 Weather Requirements</h5>
                     <ul class="list-group">
-                        <li class="list-group-item">Visibility: <span class="{{ 'check-pass' if result.visibility_pass else 'check-fail' }}">{{ result.visibility }}</span></li>
-                        <li class="list-group-item">Cloud Base: <span class="{{ 'check-pass' if result.cloud_pass else 'check-fail' }}">{{ result.cloud_label }}</span></li>
-                        <li class="list-group-item">Wind: <span class="{{ 'check-pass' if result.wind_pass else 'check-fail' }}">{{ result.wind }}</span></li>
-                        <li class="list-group-item">Condition: <span class="{{ 'check-pass' if result.condition_pass else 'check-fail' }}">{{ result.forecast }}</span></li>
+                        <li class="list-group-item">Visibility ≥ 3 statute miles</li>
+                        <li class="list-group-item">Cloud base ≥ 500 ft AGL</li>
+                        <li class="list-group-item">Wind ≤ 15.7 mph (7 m/s)</li>
+                        <li class="list-group-item">No rain, fog, thunderstorms, or snow</li>
                     </ul>
                 </div>
-                {% else %}
-                <div class="col-md-4">
-                    <h5>Future NWS</h5>
-                    <ul class="list-group">
-                        <li class="list-group-item">Forecast: <span class="{{ 'check-pass' if result.condition_pass else 'check-fail' }}">{{ result.forecast }}</span></li>
-                        <li class="list-group-item">Wind: <span class="{{ 'check-pass' if result.wind_pass else 'check-fail' }}">{{ result.wind }}</span></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5>Future TAF</h5>
-                    <p>TAF parsing not yet implemented — would show time blocks from TAF here based on flight time.</p>
-                </div>
-                {% endif %}
             </div>
 
-            <div class="mt-4">
-                <h4>Go / No-Go:
-                    <span class="{{ 'check-pass' if result.go_nogo == 'Go' else 'check-fail' }}">
-                        {{ result.go_nogo }}
-                    </span>
-                </h4>
+            {% if result.source == 'metar' %}
+            <div class="col-md-8">
+                <h5>Current METAR</h5>
+                <ul class="list-group">
+                    <li class="list-group-item">Visibility: <span class="{{ 'check-pass' if result.visibility_pass else 'check-fail' }}">{{ result.visibility }}</span></li>
+                    <li class="list-group-item">Cloud Base: <span class="{{ 'check-pass' if result.cloud_pass else 'check-fail' }}">{{ result.cloud_label }}</span></li>
+                    <li class="list-group-item">Wind: <span class="{{ 'check-pass' if result.wind_pass else 'check-fail' }}">{{ result.wind }}</span></li>
+                    <li class="list-group-item">Condition: <span class="{{ 'check-pass' if result.condition_pass else 'check-fail' }}">{{ result.forecast }}</span></li>
+                </ul>
             </div>
+            {% else %}
+            <div class="col-md-4">
+                <h5>Future NWS</h5>
+                <ul class="list-group">
+                    <li class="list-group-item">Forecast: <span class="{{ 'check-pass' if result.condition_pass else 'check-fail' }}">{{ result.forecast }}</span></li>
+                    <li class="list-group-item">Wind: <span class="{{ 'check-pass' if result.wind_pass else 'check-fail' }}">{{ result.wind }}</span></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h5>Future TAF</h5>
+                <ul class="list-group">
+                    <li class="list-group-item">TAF: 
+                        <span class="{{ 'check-pass' if result.taf_pass else 'check-fail' }}">
+                            {{ result.taf }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
         </div>
-    {% endif %}
-</body>
-</html>
+
+        <div class="mt-4">
+            <h4>Go / No-Go:
+                <span class="{{ 'check-pass' if result.go_nogo == 'Go' else 'check-fail' }}">
+                    {{ result.go_nogo }}
+                </span>
+            </h4>
+        </div>
+    </div>
+{% endif %}
