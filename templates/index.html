@@ -1,14 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>UAS Weather Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
   <style>
     body {
       padding: 2rem;
       font-family: 'Roboto', sans-serif;
+      font-size: 1rem;
       transition: background-color 0.3s, color 0.3s;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
     }
 
     h5 {
@@ -17,12 +25,12 @@
     }
 
     li {
-      font-size: 0.95rem;
+      font-size: 1rem;
     }
 
     .title-header {
       font-weight: 600;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       margin-bottom: 1rem;
     }
 
@@ -45,6 +53,16 @@
       font-weight: bold;
     }
 
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 4px solid #FE5C00;
+      padding-bottom: 0.5rem;
+      background-color: #ffffff;
+      transition: background-color 0.3s;
+    }
+
     .dark-mode {
       background-color: #1e1e1e;
       color: #e0e0e0;
@@ -62,14 +80,14 @@
       border-color: #666;
     }
 
-    .dark-mode h1 {
-      background: #1e1e1e;
-      border-color: #FE5C00;
+    .dark-mode .sticky-header {
+      background-color: #1e1e1e;
     }
 
     @media (max-width: 768px) {
       body {
         padding: 1rem;
+        font-size: 1.05rem;
       }
 
       h1 {
@@ -79,15 +97,18 @@
       .form-check-label {
         font-size: 1.2rem;
       }
+
+      li {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Sticky Header w/ Dark Toggle -->
-  <div class="d-flex justify-content-between align-items-center mb-4"
-       style="position: sticky; top: 0; background: white; z-index: 1000; border-bottom: 4px solid #FE5C00; padding-bottom: 0.5rem;">
-    <h1 class="m-0" style="font-size: 2rem;">OAIRE Flight Operations Weather Check</h1>
+  <!-- Sticky Header with Dark Mode Toggle -->
+  <div class="d-flex justify-content-between align-items-center mb-4 sticky-header">
+    <h1>OAIRE Flight Operations Weather Check</h1>
     <div class="form-check form-switch ms-3">
       <input class="form-check-input" type="checkbox" id="darkToggle">
       <label class="form-check-label" for="darkToggle">🌙</label>
