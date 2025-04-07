@@ -148,18 +148,12 @@ def index():
         station = site_data["station"]
         forecast_url = FORECAST_URLS[site_data["forecast_office"]]
 
-        flight_time_remaining = None
-        source = "none"
-        wind_str = "N/A"
-        cloud_label = "N/A"
-        condition = "Unknown"
-        visibility = 10.0
-        wind = 0.0
-        cloud_base = 10000
+        flight_time_remaining = None  # <- Make sure it's always defined
 
         if delta <= timedelta(hours=2):
             cloud_base, visibility, cloud_label, wind, wind_str, condition = get_metar_conditions(station)
             source = "metar"
+            taf_table = []
         else:
             taf_summary, taf_periods = get_taf_forecast(station, selected_time)
             if taf_summary:
@@ -170,36 +164,34 @@ def index():
                 cloud_base = int(cloud_base_match.group()) if cloud_base_match else 10000
                 cloud_label = f"{cloud_base} ft"
                 condition = taf_summary["condition"]
-                taf_table = taf_periods
                 source = "taf"
+                taf_table = taf_periods
             else:
                 periods = get_forecast(forecast_url)
                 if periods:
-                    forecast_table = []
-                    for p in periods[:12]:
-                        time = isoparse(p["startTime"]).astimezone(central)
-                        wind_match = re.search(r"\d+", p["windSpeed"])
-                        wind_val = float(wind_match.group()) if wind_match else 0.0
-                        wind = f"{wind_val:.1f} mph"
-                        forecast_table.append({
-                            "start_cst": time,
-                            "end_cst": time + timedelta(hours=1),
-                            "wind": wind,
-                            "vis": "N/A",
-                            "clouds": "N/A",
-                            "condition": p["shortForecast"]
-                        })
-                    wind_str = wind
-                    taf_table = forecast_table
-                    condition = forecast_table[0]["condition"]
+                    closest = min(periods, key=lambda p: abs(isoparse(p["startTime"]) - selected_time))
+                    wind_match = re.search(r"\d+", closest["windSpeed"])
+                    wind = float(wind_match.group()) if wind_match else 0.0
+                    wind_str = f"{wind:.1f} mph"
+                    visibility = 10.0
+                    cloud_base = 10000
                     cloud_label = "N/A (Forecast)"
+                    condition = closest["shortForecast"]
                     source = "forecast"
+                else:
+                    cloud_base = 10000
+                    visibility = 0.0
+                    wind = 0.0
+                    wind_str = "N/A"
+                    cloud_label = "N/A"
+                    condition = "Unknown"
+                    source = "none"
 
+        failed_reasons = []
         lat = selected_coords["lat"]
         lon = selected_coords["lon"]
         sunrise, sunset = get_sunrise_sunset(lat, lon, date_str)
 
-        failed_reasons = []
         if sunrise and sunset:
             if selected_time < sunrise:
                 minutes = int((sunrise - selected_time).total_seconds() / 60)
@@ -213,7 +205,7 @@ def index():
                 minutes = remainder // 60
                 flight_time_remaining = f"{hours} hours {minutes} minutes"
 
-        if wind and wind != "N/A" and float(wind_str.replace(" mph", "")) > MAX_WIND_MPH:
+        if wind > MAX_WIND_MPH:
             failed_reasons.append("Wind above 15.7 mph")
         if visibility < MIN_VISIBILITY_SM:
             failed_reasons.append("Visibility below 3 statute miles")
@@ -233,7 +225,7 @@ def index():
             "wind_forecast": wind_str if source != "metar" else "N/A",
             "forecast": condition,
             "source": source,
-            "wind_pass": float(wind_str.replace(" mph", "")) <= MAX_WIND_MPH if wind_str != "N/A" else True,
+            "wind_pass": wind <= MAX_WIND_MPH,
             "visibility_pass": visibility >= MIN_VISIBILITY_SM,
             "cloud_pass": cloud_base >= MIN_CLOUD_BASE_FT,
             "condition_pass": not any(term in condition.lower() for term in BAD_CONDITIONS),

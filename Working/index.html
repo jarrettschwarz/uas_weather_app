@@ -138,34 +138,25 @@
         </ul>
     </div>
 
-    {% if result.taf_table %}
-<div class="box">
-    <h5>{{ result.source == 'taf' and "TAF" or "Forecast" }} Timeline</h5>
-    <table class="table table-sm table-striped">
-        <thead>
-            <tr>
-                <th>Time Range</th>
-                <th>Wind</th>
-                <th>Visibility</th>
-                <th>Clouds</th>
-                <th>Conditions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for period in result.taf_table %}
-            <tr>
-                <td>{{ period.start_cst.strftime('%I:%M %p') }}–{{ period.end_cst.strftime('%I:%M %p') }}</td>
-                <td>{{ period.wind }}</td>
-                <td>{{ period.vis }}</td>
-                <td>{{ period.clouds }}</td>
-                <td>{{ period.condition }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
-
+    {% if result.source == "taf" and result.taf_table %}
+    <div class="box">
+        <h5>TAF Forecast Timeline</h5>
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Time Range</th><th>Wind</th><th>Visibility</th><th>Clouds</th><th>Conditions</th></tr></thead>
+            <tbody>
+                {% for period in result.taf_table %}
+                <tr>
+                    <td>{{ period.start.astimezone(pytz.timezone('America/Chicago')).strftime('%I:%M %p') }}–{{ period.end.astimezone(pytz.timezone('America/Chicago')).strftime('%I:%M %p') }}</td>
+                    <td>{{ period.wind }}</td>
+                    <td>{{ period.vis }}</td>
+                    <td>{{ period.clouds }}</td>
+                    <td>{{ period.condition }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 
     <div class="box text-center">
         <h5>Satellite Map</h5>
