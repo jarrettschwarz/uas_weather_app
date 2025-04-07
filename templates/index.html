@@ -10,23 +10,22 @@
       font-family: 'Roboto', sans-serif;
       transition: background-color 0.3s, color 0.3s;
     }
-    h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      position: sticky;
-      top: 0;
-      background: white;
-      z-index: 1000;
-      text-align: center;
-      padding-bottom: 0.5rem;
-      margin-bottom: 2rem;
-      border-bottom: 4px solid #FE5C00;
+
+    h5 {
+      font-weight: 600;
+      margin-bottom: 0.75rem;
     }
+
+    li {
+      font-size: 0.95rem;
+    }
+
     .title-header {
       font-weight: 600;
       font-size: 1.2rem;
       margin-bottom: 1rem;
     }
+
     .box {
       border: 1px solid #ccc;
       border-radius: 8px;
@@ -35,57 +34,65 @@
       background-color: #f9f9f9;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
+
     .check-pass {
       color: green;
       font-weight: bold;
     }
+
     .check-fail {
       color: red;
       font-weight: bold;
     }
+
     .dark-mode {
       background-color: #1e1e1e;
       color: #e0e0e0;
     }
+
     .dark-mode .box {
       background-color: #2c2c2c;
       border-color: #444;
     }
+
+    .dark-mode .form-control,
+    .dark-mode .form-select {
+      background-color: #333;
+      color: #fff;
+      border-color: #666;
+    }
+
     .dark-mode h1 {
       background: #1e1e1e;
       border-color: #FE5C00;
     }
-    .toggle-wrapper {
-      position: absolute;
-      top: 1rem;
-      right: 2rem;
-    }
-    .toggle-wrapper input {
-      transform: scale(1.2);
-    }
+
     @media (max-width: 768px) {
       body {
         padding: 1rem;
       }
+
       h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
       }
-      .toggle-wrapper {
-        top: 0.5rem;
-        right: 1rem;
+
+      .form-check-label {
+        font-size: 1.2rem;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- 🔄 Dark Mode Toggle -->
-  <div class="toggle-wrapper">
-    <label class="form-check-label me-2" for="darkToggle">🌙</label>
-    <input type="checkbox" id="darkToggle" class="form-check-input">
+  <!-- Sticky Header w/ Dark Toggle -->
+  <div class="d-flex justify-content-between align-items-center mb-4"
+       style="position: sticky; top: 0; background: white; z-index: 1000; border-bottom: 4px solid #FE5C00; padding-bottom: 0.5rem;">
+    <h1 class="m-0" style="font-size: 2rem;">OAIRE Flight Operations Weather Check</h1>
+    <div class="form-check form-switch ms-3">
+      <input class="form-check-input" type="checkbox" id="darkToggle">
+      <label class="form-check-label" for="darkToggle">🌙</label>
+    </div>
   </div>
-
-  <h1>OAIRE Flight Operations Weather Check</h1>
 
   <form method="post" class="mb-4">
     <div class="mb-3">
@@ -210,7 +217,6 @@
     const toggle = document.getElementById("darkToggle");
     const body = document.body;
 
-    // Load preference
     if (localStorage.getItem("darkMode") === "true") {
       body.classList.add("dark-mode");
       toggle.checked = true;
@@ -221,5 +227,6 @@
       localStorage.setItem("darkMode", toggle.checked);
     });
   </script>
+
 </body>
 </html>
