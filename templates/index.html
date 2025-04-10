@@ -243,21 +243,73 @@
   </div>
   {% endif %}
 
-  <div class="box text-center">
-    <h5>Radar</h5>
-    <iframe 
-      width="100%" 
-      height="450" 
-      frameborder="0" 
-      loading="lazy"
-      src="https://embed.windy.com/embed2.html?lat=35.5&lon=-97.5&zoom=7&level=surface&overlay=radar&marker=false&menu=&message=false&type=map&detail=true&detailLat={{ selected_coords.lat }}&detailLon={{ selected_coords.lon }}&metricWind=default&metricTemp=default">
-    </iframe>
-  </div>
-  
-  
-  
-  
-  
+<!-- Windy Radar Map -->
+<div class="box text-center">
+  <h5>Radar</h5>
+  <div id="windy-map" style="width: 100%; height: 450px;"></div>
+</div>
+
+<!-- Leaflet (required by Windy) -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<!-- Windy API -->
+<script src="https://api.windy.com/assets/map-forecast/libBoot.js"></script>
+<script>
+  const windyOptions = {
+    key: "6R0dVPCPe0zl4isD0Y9A4RjwUyyyQ5Hg", // ✅ Your Map Forecast API key
+    verbose: false,
+    lat: 35.5, // Center on Oklahoma
+    lon: -97.5,
+    zoom: 7,
+    overlay: "radar",
+  };
+
+  // Flask variables for the selected site coordinates
+  const selectedLat = {{ selected_coords.lat }};
+  const selectedLon = {{ selected_coords.lon }};
+
+  windyInit(windyOptions, function (windyAPI) {
+    const { map } = windyAPI;
+
+    // Add pulsing blue marker at selected site
+    const marker = L.circleMarker([selectedLat, selectedLon], {
+      radius: 10,
+      color: "#00bfff",
+      fillColor: "#00bfff",
+      fillOpacity: 0.7,
+      className: "blinking-marker"
+    }).addTo(map);
+
+    // Optional: zoom into selected site
+    // map.setView([selectedLat, selectedLon], 8);
+  });
+</script>
+
+<!-- Optional CSS for animated pulsing marker -->
+<style>
+  .blinking-marker {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.3);
+    }
+    100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+  }
+</style>
   {% endif %}
 
   <script>
