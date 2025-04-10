@@ -24,7 +24,7 @@ MIN_CLOUD_BASE_FT = 500
 BAD_CONDITIONS = ["rain", "snow", "fog", "thunderstorm", "mist"]
 
 FLIGHT_SITES = {
-    "UAFS": {"lat": 36.162353, "lon": -98.836239, "station": "KSWO", "forecast_office": "Norman"},
+    "UAFS": {"lat": 36.161946, "lon": -96.835495, "station": "KSWO", "forecast_office": "Norman"},
     "CENFEX": {"lat": 36.360657, "lon": -96.860111, "station": "KSWO", "forecast_office": "Norman"},
     "Legion Field": {"lat": 34.723543, "lon": -98.387076, "station": "KLAW", "forecast_office": "Norman"},
     "Skyway 36": {"lat": 36.210521, "lon": -96.008673, "station": "KRVS", "forecast_office": "Tulsa"},
