@@ -298,22 +298,29 @@
       zoom: 7,
       overlay: "radar"
     };
-
+  
+    console.log("DEBUG: Windy options:", windyOptions);
+  
     windyInit(windyOptions, function (windyAPI) {
       const { map } = windyAPI;
-
+  
       const selectedLat = {{ selected_coords.lat | tojson }};
       const selectedLon = {{ selected_coords.lon | tojson }};
-
-      L.circleMarker([selectedLat, selectedLon], {
+  
+      console.log("DEBUG: Selected Lat/Lon for marker:", selectedLat, selectedLon);
+  
+      const marker = L.circleMarker([selectedLat, selectedLon], {
         radius: 10,
         color: "#00bfff",
         fillColor: "#00bfff",
         fillOpacity: 0.7,
         className: "blinking-marker"
       }).addTo(map);
+  
+      console.log("DEBUG: Marker added to map");
     });
   </script>
+  
   {% endif %}
 
 </body>
