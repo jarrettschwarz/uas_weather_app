@@ -131,6 +131,7 @@ def get_taf_forecast(station, selected_time):
 def index():
     result = None
     selected_coords = None
+    print("DEBUG: Selected Coordinates =", selected_coords)
     taf_table = []
 
     if request.method == "POST":
