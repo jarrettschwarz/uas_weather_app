@@ -5,44 +5,91 @@ import pytz
 import xml.etree.ElementTree as ET
 import re
 from dateutil.parser import isoparse
+from math import radians, cos, sin, sqrt, atan2
+import csv
+import os
 
 app = Flask(__name__)
 
-def to_dms(deg):
-    d = int(deg)
-    m = int((abs(deg) - abs(d)) * 60)
-    s = (abs(deg) - abs(d) - m / 60) * 3600
-    hemi = 'N' if deg >= 0 else 'S' if d == deg else 'W'
-    return f"{abs(d)}°{m}'{s:.1f}\"{hemi}"
+# Utility: convert decimal degrees to DMS string
+app.jinja_env.filters['dms'] = lambda deg: f"{int(abs(deg))}°{int((abs(deg)%1)*60)}'{((abs(deg)*3600)%60):.1f}\"{'N' if deg>=0 else 'S'}" if deg else ""
 
-app.jinja_env.filters['dms'] = to_dms
-
+# Constants
 HEADERS = {"User-Agent": "UAS-Weather-Check"}
 MAX_WIND_MPH = 15.7
 MIN_VISIBILITY_SM = 3.0
 MIN_CLOUD_BASE_FT = 500
 BAD_CONDITIONS = ["rain", "snow", "fog", "thunderstorm", "mist"]
 
-FLIGHT_SITES = {
-    "UAFS": {"lat": 36.161946, "lon": -96.835495, "station": "KSWO", "forecast_office": "Norman"},
-    "CENFEX": {"lat": 36.360657, "lon": -96.860111, "station": "KSWO", "forecast_office": "Norman"},
-    "Legion Field": {"lat": 34.723543, "lon": -98.387076, "station": "KLAW", "forecast_office": "Norman"},
-    "Skyway 36": {"lat": 36.210521, "lon": -96.008673, "station": "KRVS", "forecast_office": "Tulsa"},
-}
+# Load local METAR stations
+METAR_STATIONS = []
+with open("metar_stations_oklahoma.csv", newline='') as f:
+    reader = csv.DictReader(f)
+    METAR_STATIONS = [(row["icao"], float(row["lat"]), float(row["lon"])) for row in reader]
 
-FORECAST_URLS = {
-    "Norman": "https://api.weather.gov/gridpoints/OUN/43,34/forecast/hourly",
-    "Tulsa": "https://api.weather.gov/gridpoints/TSA/28,44/forecast/hourly"
-}
+# Load local TAF stations
+TAF_STATIONS = []
+with open("taf_stations_oklahoma.csv", newline='') as f:
+    reader = csv.DictReader(f)
+    TAF_STATIONS = [(row["icao"], float(row["lat"]), float(row["lon"])) for row in reader]
+
+# Load local NWS grid points
+NWS_POINTS = []
+with open("nws_gridpoints_oklahoma.csv", newline='') as f:
+    reader = csv.DictReader(f)
+    NWS_POINTS = [{
+        "office": row["office"],
+        "location": row["location"],
+        "lat": float(row["lat"]),
+        "lon": float(row["lon"]),
+        "gridX": int(row["gridX"]),
+        "gridY": int(row["gridY"])
+    } for row in reader]
+
+# DMS parser
+def dms_to_decimal(deg, min_, sec, direction):
+    try:
+        if not deg or not min_ or not sec:
+            return None
+        decimal = float(deg) + float(min_) / 60 + float(sec) / 3600
+        if direction in ['S', 'W']:
+            decimal *= -1
+        return decimal
+    except ValueError:
+        return None
+
+# Haversine distance
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    a = sin(dlat/2)**2 + cos(lat1)*cos(lat2)*sin(dlon/2)**2
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+
+def find_nearest_metar_station(lat, lon):
+    closest = min(METAR_STATIONS, key=lambda s: haversine(lat, lon, s[1], s[2]))
+    print(f"DEBUG: Closest METAR station = {closest[0]}")
+    return closest[0]
+
+def find_nearest_taf_station(lat, lon):
+    closest = min(TAF_STATIONS, key=lambda s: haversine(lat, lon, s[1], s[2]))
+    print(f"DEBUG: Closest TAF station = {closest[0]}")
+    return closest[0]
+
+def get_nws_forecast_url(lat, lon):
+    closest = min(NWS_POINTS, key=lambda p: haversine(lat, lon, p["lat"], p["lon"]))
+    print(f"DEBUG: Closest NWS office = {closest['office']} at grid {closest['gridX']},{closest['gridY']}")
+    url = f"https://api.weather.gov/gridpoints/{closest['office']}/{closest['gridX']},{closest['gridY']}/forecast/hourly"
+    return url, closest["office"]
 
 def get_sunrise_sunset(lat, lon, date):
     url = f"https://api.sunrise-sunset.org/json?lat={lat}&lng={lon}&date={date}&formatted=0"
     try:
         res = requests.get(url)
         data = res.json()["results"]
-        sunrise_utc = datetime.fromisoformat(data["sunrise"]).replace(tzinfo=timezone.utc)
-        sunset_utc = datetime.fromisoformat(data["sunset"]).replace(tzinfo=timezone.utc)
-        return sunrise_utc, sunset_utc
+        sunrise = datetime.fromisoformat(data["sunrise"]).replace(tzinfo=timezone.utc)
+        sunset = datetime.fromisoformat(data["sunset"]).replace(tzinfo=timezone.utc)
+        return sunrise, sunset
     except:
         return None, None
 
@@ -52,10 +99,9 @@ def get_metar_conditions(station):
         res = requests.get(url)
         root = ET.fromstring(res.content)
         metar = root.find(".//METAR")
-        wind_speed = int(metar.find("wind_speed_kt").text) if metar.find("wind_speed_kt") is not None else 0
-        visibility_el = metar.find("visibility_statute_mi")
-        vis_str = visibility_el.text if visibility_el is not None else "0"
-        visibility = float(vis_str.replace('+', ''))
+        wind_speed = int(metar.find("wind_speed_kt").text or 0)
+        vis_el = metar.find("visibility_statute_mi")
+        visibility = float(vis_el.text.replace('+', '')) if vis_el is not None else 0
         cloud_ft = 10000
         for cloud in metar.findall("sky_condition"):
             if cloud.get("sky_cover") in ["BKN", "OVC"] and cloud.get("cloud_base_ft_agl"):
@@ -63,10 +109,8 @@ def get_metar_conditions(station):
                 break
         condition = metar.find("flight_category").text if metar.find("flight_category") is not None else "Unknown"
         wind_mph = round(wind_speed * 1.15078, 1)
-        wind_str = f"{wind_mph} mph"
-        return cloud_ft, visibility, f"{cloud_ft} ft", wind_mph, wind_str, condition
-    except Exception as e:
-        print(f"METAR error: {e}")
+        return cloud_ft, visibility, f"{cloud_ft} ft", wind_mph, f"{wind_mph} mph", condition
+    except:
         return 10000, 0.0, "Unavailable", 0.0, "N/A", "Unknown"
 
 def get_forecast(forecast_url):
@@ -76,152 +120,94 @@ def get_forecast(forecast_url):
     except:
         return []
 
-def get_taf_forecast(station, selected_time):
-    taf_url = f"https://aviationweather.gov/api/data/taf?format=xml&ids={station}"
-    central = pytz.timezone("America/Chicago")
-    try:
-        res = requests.get(taf_url)
-        root = ET.fromstring(res.content)
-        taf = root.find(".//TAF")
-        if taf is None:
-            return None, []
-
-        taf_periods = []
-        for forecast in taf.findall("forecast"):
-            start = forecast.find("fcst_time_from").text
-            end = forecast.find("fcst_time_to").text
-            start_dt = datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-            end_dt = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-
-            wind_raw = forecast.find("wind_speed_kt")
-            wind_kt = int(wind_raw.text) if wind_raw is not None else 0
-            wind_mph = round(wind_kt * 1.15078, 1)
-            wind = f"{wind_mph} mph"
-
-            vis_raw = forecast.find("visibility_statute_mi")
-            vis = vis_raw.text if vis_raw is not None else "10"
-            visibility = float(vis.replace("+", ""))
-
-            clouds = []
-            for layer in forecast.findall("sky_condition"):
-                if layer.get("cloud_base_ft_agl"):
-                    clouds.append(f"{layer.get('cloud_base_ft_agl')} ft")
-            cloud_str = ', '.join(clouds) if clouds else "None"
-
-            condition = forecast.find("wx_string").text if forecast.find("wx_string") is not None else ""
-
-            taf_periods.append({
-                "start_cst": start_dt.astimezone(central),
-                "end_cst": end_dt.astimezone(central),
-                "start": start_dt,
-                "end": end_dt,
-                "wind": wind,
-                "vis": f"{visibility:.1f} statute miles",
-                "clouds": cloud_str,
-                "condition": condition
-            })
-
-        match = next((p for p in taf_periods if p["start"] <= selected_time <= p["end"]), None)
-        return match, taf_periods
-    except Exception as e:
-        print(f"TAF error: {e}")
-        return None, []
-
 @app.route("/", methods=["GET", "POST"])
 def index():
-    result = None
-    selected_coords = None
-    print("DEBUG: Selected Coordinates =", selected_coords)
-    taf_table = []
+    result, taf_table, selected_coords = None, [], None
 
     if request.method == "POST":
-        site = request.form["site"]
+        site_coords = {
+            "UAFS": {"lat": 36.162101, "lon": -96.835504},
+            "CENFEX": {"lat": 36.357214, "lon": -96.861901},
+            "Legion Field": {"lat": 34.723543, "lon": -98.387076},
+            "SkyWay36": {"lat": 36.210521, "lon": -96.008673}
+        }
+
+        site = request.form.get("site")
         date_str = request.form["flight_date"]
         time_str = request.form["flight_time"]
         central = pytz.timezone("America/Chicago")
         naive_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         selected_time = central.localize(naive_time).astimezone(pytz.utc)
-        now_utc = datetime.now(timezone.utc)
-        delta = selected_time - now_utc
+        delta = selected_time - datetime.now(timezone.utc)
 
-        site_data = FLIGHT_SITES[site]
-        selected_coords = {"lat": site_data["lat"], "lon": site_data["lon"]}
-        station = site_data["station"]
-        forecast_url = FORECAST_URLS[site_data["forecast_office"]]
+        if site in site_coords:
+            lat = site_coords[site]["lat"]
+            lon = site_coords[site]["lon"]
+            selected_coords = {"lat": lat, "lon": lon, "name": site}
+            station = find_nearest_metar_station(lat, lon)
+            taf_station = find_nearest_taf_station(lat, lon)
+            forecast_url, forecast_office = get_nws_forecast_url(lat, lon)
 
-        flight_time_remaining = None
-        source = "none"
-        wind_str = "N/A"
-        cloud_label = "N/A"
-        condition = "Unknown"
-        visibility = 10.0
-        wind = 0.0
-        cloud_base = 10000
+        elif site == "Custom":
+            format_type = request.form.get("coordFormat")
+            try:
+                if format_type == "decimal":
+                    lat = float(request.form.get("lat_decimal", "").strip())
+                    lon = float(request.form.get("lon_decimal", "").strip())
+                else:
+                    lat = dms_to_decimal(request.form.get("lat_deg"), request.form.get("lat_min"), request.form.get("lat_sec"), request.form.get("lat_dir"))
+                    lon = dms_to_decimal(request.form.get("lon_deg"), request.form.get("lon_min"), request.form.get("lon_sec"), request.form.get("lon_dir"))
+                    if lat is None or lon is None:
+                        raise ValueError("Invalid DMS")
+                selected_coords = {"lat": lat, "lon": lon, "name": "Custom Location"}
+                station = find_nearest_metar_station(lat, lon)
+                taf_station = find_nearest_taf_station(lat, lon)
+                forecast_url, forecast_office = get_nws_forecast_url(lat, lon)
+            except:
+                return render_template("index.html", result=None, flight_sites=["Custom"], selected_coords=None, taf_table=[], pytz=pytz)
+        else:
+            return render_template("index.html", result=None, flight_sites=["Custom"], selected_coords=None, taf_table=[], pytz=pytz)
 
         if delta <= timedelta(hours=2):
             cloud_base, visibility, cloud_label, wind, wind_str, condition = get_metar_conditions(station)
             source = "metar"
         else:
-            taf_summary, taf_periods = get_taf_forecast(station, selected_time)
-            if taf_summary:
-                wind_str = taf_summary["wind"]
-                wind = float(wind_str.replace(" mph", ""))
-                visibility = float(taf_summary["vis"].replace(" statute miles", ""))
-                cloud_base_match = re.search(r"\d+", taf_summary["clouds"])
-                cloud_base = int(cloud_base_match.group()) if cloud_base_match else 10000
-                cloud_label = f"{cloud_base} ft"
-                condition = taf_summary["condition"]
-                taf_table = taf_periods
-                source = "taf"
+            forecast = get_forecast(forecast_url)
+            if forecast:
+                closest = min(forecast, key=lambda p: abs(isoparse(p["startTime"]) - selected_time))
+                wind_match = re.search(r"\d+", closest["windSpeed"])
+                wind = float(wind_match.group()) if wind_match else 0.0
+                wind_str = f"{wind:.1f} mph"
+                visibility = 10.0
+                cloud_base = 10000
+                cloud_label = "N/A (Forecast)"
+                condition = closest["shortForecast"]
+                source = "forecast"
             else:
-                periods = get_forecast(forecast_url)
-                if periods:
-                    forecast_table = []
-                    for p in periods[:12]:
-                        time = isoparse(p["startTime"]).astimezone(central)
-                        wind_match = re.search(r"\d+", p["windSpeed"])
-                        wind_val = float(wind_match.group()) if wind_match else 0.0
-                        wind = f"{wind_val:.1f} mph"
-                        forecast_table.append({
-                            "start_cst": time,
-                            "end_cst": time + timedelta(hours=1),
-                            "wind": wind,
-                            "vis": "N/A",
-                            "clouds": "N/A",
-                            "condition": p["shortForecast"]
-                        })
-                    wind_str = wind
-                    taf_table = forecast_table
-                    condition = forecast_table[0]["condition"]
-                    cloud_label = "N/A (Forecast)"
-                    source = "forecast"
-
-        lat = selected_coords["lat"]
-        lon = selected_coords["lon"]
-        sunrise, sunset = get_sunrise_sunset(lat, lon, date_str)
+                cloud_base = 10000
+                visibility = 0.0
+                wind = 0.0
+                wind_str = "N/A"
+                cloud_label = "N/A"
+                condition = "Unknown"
+                source = "none"
 
         failed_reasons = []
+        sunrise, sunset = get_sunrise_sunset(lat, lon, date_str)
+        flight_time_remaining = None
         if sunrise and sunset:
             if selected_time < sunrise:
-                minutes = int((sunrise - selected_time).total_seconds() / 60)
-                failed_reasons.append(f"Operation is {minutes} minutes before sunrise")
+                failed_reasons.append(f"Operation is {int((sunrise - selected_time).total_seconds() / 60)} minutes before sunrise")
             elif selected_time > sunset:
-                minutes = int((selected_time - sunset).total_seconds() / 60)
-                failed_reasons.append(f"Operation is {minutes} minutes after sunset")
-            elif sunrise <= selected_time < sunset:
-                remaining = sunset - selected_time
-                hours, remainder = divmod(int(remaining.total_seconds()), 3600)
-                minutes = remainder // 60
-                flight_time_remaining = f"{hours} hours {minutes} minutes"
+                failed_reasons.append(f"Operation is {int((selected_time - sunset).total_seconds() / 60)} minutes after sunset")
+            else:
+                rem = sunset - selected_time
+                flight_time_remaining = f"{rem.seconds // 3600} hours {(rem.seconds % 3600) // 60} minutes"
 
-        if wind and wind != "N/A" and float(wind_str.replace(" mph", "")) > MAX_WIND_MPH:
-            failed_reasons.append("Wind above 15.7 mph")
-        if visibility < MIN_VISIBILITY_SM:
-            failed_reasons.append("Visibility below 3 statute miles")
-        if cloud_base < MIN_CLOUD_BASE_FT:
-            failed_reasons.append("Cloud base below 500 ft AGL")
-        if any(term in condition.lower() for term in BAD_CONDITIONS):
-            failed_reasons.append("Bad weather conditions present")
+        if wind > MAX_WIND_MPH: failed_reasons.append("Wind above 15.7 mph")
+        if visibility < MIN_VISIBILITY_SM: failed_reasons.append("Visibility below 3 statute miles")
+        if cloud_base < MIN_CLOUD_BASE_FT: failed_reasons.append("Cloud base below 500 ft AGL")
+        if any(term in condition.lower() for term in BAD_CONDITIONS): failed_reasons.append("Bad weather conditions present")
 
         result = {
             "site": site,
@@ -234,7 +220,7 @@ def index():
             "wind_forecast": wind_str if source != "metar" else "N/A",
             "forecast": condition,
             "source": source,
-            "wind_pass": float(wind_str.replace(" mph", "")) <= MAX_WIND_MPH if wind_str != "N/A" else True,
+            "wind_pass": wind <= MAX_WIND_MPH,
             "visibility_pass": visibility >= MIN_VISIBILITY_SM,
             "cloud_pass": cloud_base >= MIN_CLOUD_BASE_FT,
             "condition_pass": not any(term in condition.lower() for term in BAD_CONDITIONS),
@@ -245,11 +231,13 @@ def index():
             "sunrise": sunrise.astimezone(central).strftime('%I:%M %p CST') if sunrise else "N/A",
             "sunset": sunset.astimezone(central).strftime('%I:%M %p CST') if sunset else "N/A",
             "flight_time_remaining": flight_time_remaining,
+            "station_used": station,
+            "taf_used": taf_station,
+            "forecast_url_used": forecast_url
         }
 
-    return render_template("index.html", result=result, flight_sites=FLIGHT_SITES.keys(), selected_coords=selected_coords, taf_table=taf_table, pytz=pytz)
+    return render_template("index.html", result=result, flight_sites=["Custom"], selected_coords=selected_coords, taf_table=taf_table, pytz=pytz)
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
