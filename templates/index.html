@@ -8,14 +8,14 @@
         body {
             padding: 2rem;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(135deg, #FFF4E6 0%, #FFF8F0 100%);
             min-height: 100vh;
         }
         
         h2 {
             text-align: center;
             margin-bottom: 2rem;
-            color: #2c3e50;
+            color: #FF6600;
             font-weight: 700;
         }
         
@@ -26,9 +26,10 @@
         .form-card {
             background: white;
             border-radius: 12px;
-            padding: 2rem;
+            padding: 2.5rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             margin-bottom: 2rem;
+            border: 2px solid #000000;
         }
         
         .box {
@@ -37,7 +38,7 @@
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            border-left: 4px solid #3498db;
+            border-left: 4px solid #000000;
         }
         
         .box.decision {
@@ -77,26 +78,54 @@
         
         .form-control, .form-select {
             border-radius: 8px;
-            border: 1px solid #ddd;
+            border: 1px solid #000000;
         }
         
         .form-control:focus, .form-select:focus {
-            border-color: #3498db;
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+            border-color: #FF6600;
+            box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.15);
+        }
+        
+        .datetime-input, .location-input {
+            border: 2px solid #000000 !important;
+            background: white;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #2c3e50;
+        }
+        
+        .datetime-input:hover, .location-input:hover {
+            border-color: #333333 !important;
+            box-shadow: 0 2px 8px rgba(255, 102, 0, 0.15) !important;
+        }
+        
+        .datetime-input:focus, .location-input:focus {
+            border-color: #FF6600 !important;
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1) !important;
+            outline: none;
+        }
+        
+        .datetime-input::placeholder {
+            color: #999;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6600 0%, #FF8533 100%);
             border: none;
             border-radius: 8px;
             padding: 0.75rem 1.5rem;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 1rem;
         }
         
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(255, 102, 0, 0.35);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.25);
         }
         
         .coordinate-inputs {
@@ -164,9 +193,9 @@
         
         <div class="form-card">
             <form method="post">
-                <div class="mb-3">
-                    <label class="form-label">Select Location:</label>
-                    <select name="site" id="site" class="form-select" onchange="toggleCustomCoords(this.value)" required>
+                <div style="background: linear-gradient(135deg, rgba(255, 102, 0, 0.08) 0%, rgba(255, 133, 51, 0.08) 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.95rem;">📍 Select Location</label>
+                    <select name="site" id="site" class="form-select location-input" style="height: 48px; font-size: 1rem; font-weight: 500;" onchange="toggleCustomCoords(this.value)" required>
                         <option value="">-- Choose a site --</option>
                         {% for site in flight_sites %}
                             <option value="{{ site }}">{{ site }}</option>
@@ -220,15 +249,18 @@
                     </div>
                 </div>
                 
-                <!-- Date/Time -->
-                <div class="mb-3">
-                    <label class="form-label">Flight Date:</label>
-                    <input type="date" name="flight_date" class="form-control" required>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Flight Time (CST):</label>
-                    <input type="time" name="flight_time" class="form-control" required>
+                <!-- Date/Time Section -->
+                <div style="background: linear-gradient(135deg, rgba(255, 102, 0, 0.08) 0%, rgba(255, 133, 51, 0.08) 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700; font-size: 0.95rem;">📅 Flight Date</label>
+                            <input type="date" name="flight_date" class="form-control datetime-input" style="height: 48px; font-size: 1rem; font-weight: 500;" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-weight: 700; font-size: 0.95rem;">🕐 Flight Time (CST)</label>
+                            <input type="time" name="flight_time" class="form-control datetime-input" style="height: 48px; font-size: 1rem; font-weight: 500;" required>
+                        </div>
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn btn-primary w-100">Check Weather</button>
@@ -305,7 +337,7 @@
         </div>
         
         <!-- Data Sources -->
-        <div class="box" style="border-left-color: #9b59b6;">
+        <div class="box" style="border-left-color: #000000;">
             <h5>Data Sources Used</h5>
             <ul class="info-list" style="font-size: 0.9rem;">
                 <li><strong>METAR Station:</strong> {{ result.station_used }}</li>
