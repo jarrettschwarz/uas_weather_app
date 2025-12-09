@@ -28,6 +28,14 @@ FLIGHT_SITES = {
     "SkyWay36": {"lat": 36.210521, "lon": -96.008673}
 }
 
+# Nearest METAR stations for preset sites
+SITE_METAR_MAP = {
+    "UAFS": "KSWO",
+    "CENFEX": "KSWO",
+    "Legion Field": "KLAW",
+    "SkyWay36": "KRVS"
+}
+
 # Cache for NWS points to avoid excessive API calls
 nws_cache = {}
 
@@ -47,23 +55,33 @@ def get_nws_grid(lat, lon):
     """Get NWS grid point for coordinates"""
     cache_key = f"{lat:.2f},{lon:.2f}"
     if cache_key in nws_cache:
+        logger.debug(f"NWS grid from cache: {cache_key}")
         return nws_cache[cache_key]
     
     try:
         url = f"https://api.weather.gov/points/{lat},{lon}"
-        res = requests.get(url, timeout=5)
+        res = requests.get(url, headers=HEADERS, timeout=5)
+        logger.info(f"NWS grid API: HTTP {res.status_code}")
+        
         if res.status_code == 200:
             props = res.json().get('properties', {})
+            grid_id = props.get('gridId', '')
+            office = grid_id.split('/')[0] if '/' in grid_id else 'Unknown'
+            
             data = {
                 'forecast_url': props.get('forecast'),
                 'forecast_hourly': props.get('forecastHourly'),
-                'office': props.get('gridId', '').split('/')[0] if '/' in props.get('gridId', '') else 'Unknown'
+                'office': office
             }
+            logger.info(f"NWS grid found: Office={office}, GridID={grid_id}")
             nws_cache[cache_key] = data
             return data
+        else:
+            logger.warning(f"NWS grid API error: HTTP {res.status_code}")
     except Exception as e:
-        logger.error(f"NWS grid error: {e}")
+        logger.error(f"NWS grid error: {e}", exc_info=True)
     
+    logger.warning(f"NWS grid lookup failed for {lat},{lon}")
     return None
 
 def find_metar_stations(lat, lon):
@@ -85,35 +103,190 @@ def find_metar_stations(lat, lon):
     return None, None
 
 def get_metar(station_code):
-    """Fetch METAR for a station"""
+    """Fetch METAR for a station using FAA aviationweather.gov (no auth required)"""
     if not station_code:
+        logger.warning("No station code provided for METAR")
         return None
     
     try:
         url = f"https://aviationweather.gov/api/data/metar?format=xml&ids={station_code}"
         res = requests.get(url, headers=HEADERS, timeout=5)
-        root = ET.fromstring(res.content)
-        metar = root.find(".//METAR")
+        logger.info(f"METAR {station_code}: HTTP {res.status_code}")
         
-        if metar is None:
+        if res.status_code != 200:
+            logger.warning(f"METAR API error: HTTP {res.status_code}")
             return None
         
-        wind_kt = int(metar.find("wind_speed_kt").text or 0)
-        wind_mph = round(wind_kt * 1.15078, 1)
+        try:
+            root = ET.fromstring(res.content)
+        except ET.ParseError as e:
+            logger.warning(f"METAR {station_code}: XML parse error: {e}")
+            return None
         
-        vis_el = metar.find("visibility_statute_mi")
-        visibility = float(vis_el.text.replace('+', '')) if vis_el is not None and vis_el.text else 0.0
+        # Find METAR element
+        metar = root.find(".//METAR")
+        if metar is None:
+            logger.warning(f"METAR {station_code}: No METAR element in response")
+            return None
         
+        logger.debug(f"METAR {station_code}: Found METAR element")
+        
+        # Extract wind speed (in knots, convert to mph)
+        wind_mph = 0.0
+        try:
+            wind_el = metar.find("wind_speed_kt")
+            if wind_el is not None and wind_el.text:
+                wind_kt = float(wind_el.text)
+                wind_mph = round(wind_kt * 1.15078, 1)
+                logger.debug(f"METAR {station_code} wind: {wind_kt}kt = {wind_mph}mph")
+        except Exception as e:
+            logger.warning(f"METAR {station_code} wind parse error: {e}")
+            wind_mph = 0.0
+        
+        # Extract visibility (in statute miles)
+        visibility = 10.0
+        try:
+            vis_el = metar.find("visibility_statute_mi")
+            if vis_el is not None and vis_el.text:
+                vis_str = vis_el.text.replace('+', '').strip()
+                visibility = float(vis_str)
+                logger.debug(f"METAR {station_code} visibility: {visibility}sm")
+        except Exception as e:
+            logger.warning(f"METAR {station_code} visibility parse error: {e}")
+            visibility = 10.0
+        
+        # Extract cloud base (first BKN or OVC layer)
         cloud_base = 10000
-        for cloud in metar.findall("sky_condition"):
-            if cloud.get("sky_cover") in ["BKN", "OVC"]:
-                try:
-                    cloud_base = int(cloud.get("cloud_base_ft_agl"))
-                    break
-                except:
-                    pass
+        try:
+            for cloud in metar.findall("sky_condition"):
+                coverage = cloud.get("sky_cover", "")
+                if coverage in ["BKN", "OVC"]:
+                    base_el = cloud.get("cloud_base_ft_agl")
+                    if base_el:
+                        cloud_base = int(base_el)
+                        logger.debug(f"METAR {station_code} cloud base: {cloud_base}ft ({coverage})")
+                        break
+        except Exception as e:
+            logger.warning(f"METAR {station_code} cloud parse error: {e}")
+            cloud_base = 10000
         
-        condition = metar.find("flight_category").text or "Unknown"
+        # Extract flight category
+        condition = "UNKN"
+        try:
+            cat_el = metar.find("flight_category")
+            if cat_el is not None and cat_el.text:
+                condition = cat_el.text
+                logger.debug(f"METAR {station_code} category: {condition}")
+        except Exception as e:
+            logger.warning(f"METAR {station_code} category parse error: {e}")
+            condition = "UNKN"
+        
+        # Return if we have valid data
+        if condition and condition != "UNKN":
+            logger.info(f"✓ METAR {station_code}: Wind={wind_mph}mph, Vis={visibility}sm, Cat={condition}")
+            return {
+                "wind_mph": wind_mph,
+                "visibility": visibility,
+                "cloud_base": cloud_base,
+                "condition": condition
+            }
+        else:
+            logger.warning(f"METAR {station_code}: Invalid condition data")
+            return None
+            
+    except Exception as e:
+        logger.error(f"METAR {station_code} exception: {e}", exc_info=True)
+        return None
+
+
+def get_taf(station_code):
+    """Fetch TAF for a station using FAA aviationweather.gov (no auth required)"""
+    if not station_code:
+        logger.warning("No station code provided for TAF")
+        return None
+    
+    try:
+        url = f"https://aviationweather.gov/api/data/taf?format=xml&ids={station_code}"
+        res = requests.get(url, headers=HEADERS, timeout=5)
+        logger.info(f"TAF {station_code}: HTTP {res.status_code}")
+        
+        if res.status_code != 200:
+            logger.warning(f"TAF API error: HTTP {res.status_code}")
+            return None
+        
+        try:
+            root = ET.fromstring(res.content)
+        except ET.ParseError as e:
+            logger.warning(f"TAF {station_code}: XML parse error: {e}")
+            return None
+        
+        # Find TAF element
+        taf = root.find(".//TAF")
+        if taf is None:
+            logger.warning(f"TAF {station_code}: No TAF element in response")
+            return None
+        
+        logger.debug(f"TAF {station_code}: Found TAF element")
+        
+        # Get first forecast period
+        forecast = taf.find("forecast")
+        if forecast is None:
+            logger.warning(f"TAF {station_code}: No forecast period")
+            return None
+        
+        logger.debug(f"TAF {station_code}: Found forecast period")
+        
+        # Extract wind (in knots, convert to mph)
+        wind_mph = 0.0
+        try:
+            wind_el = forecast.find("wind_speed_kt")
+            if wind_el is not None and wind_el.text:
+                wind_kt = float(wind_el.text)
+                wind_mph = round(wind_kt * 1.15078, 1)
+                logger.debug(f"TAF {station_code} wind: {wind_kt}kt = {wind_mph}mph")
+        except Exception as e:
+            logger.warning(f"TAF {station_code} wind parse error: {e}")
+            wind_mph = 0.0
+        
+        # Extract visibility
+        visibility = 10.0
+        try:
+            vis_el = forecast.find("visibility_statute_mi")
+            if vis_el is not None and vis_el.text:
+                vis_str = vis_el.text.replace('+', '').strip()
+                visibility = float(vis_str)
+                logger.debug(f"TAF {station_code} visibility: {visibility}sm")
+        except Exception as e:
+            logger.warning(f"TAF {station_code} visibility parse error: {e}")
+            visibility = 10.0
+        
+        # Extract cloud base
+        cloud_base = 10000
+        try:
+            for cloud in forecast.findall("sky_condition"):
+                coverage = cloud.get("sky_cover", "")
+                if coverage in ["BKN", "OVC"]:
+                    base_el = cloud.get("cloud_base_ft_agl")
+                    if base_el:
+                        cloud_base = int(base_el)
+                        logger.debug(f"TAF {station_code} cloud base: {cloud_base}ft ({coverage})")
+                        break
+        except Exception as e:
+            logger.warning(f"TAF {station_code} cloud parse error: {e}")
+            cloud_base = 10000
+        
+        # Extract weather description
+        condition = "VFR"
+        try:
+            wx_el = forecast.find("wx_string")
+            if wx_el is not None and wx_el.text:
+                condition = wx_el.text
+                logger.debug(f"TAF {station_code} weather: {condition}")
+        except Exception as e:
+            logger.warning(f"TAF {station_code} weather parse error: {e}")
+            condition = "VFR"
+        
+        logger.info(f"✓ TAF {station_code}: Wind={wind_mph}mph, Vis={visibility}sm, Cloud={cloud_base}ft")
         
         return {
             "wind_mph": wind_mph,
@@ -121,8 +294,9 @@ def get_metar(station_code):
             "cloud_base": cloud_base,
             "condition": condition
         }
+        
     except Exception as e:
-        logger.error(f"METAR error for {station_code}: {e}")
+        logger.error(f"TAF {station_code} exception: {e}", exc_info=True)
         return None
 
 def get_forecast(forecast_url):
@@ -225,20 +399,34 @@ def index():
             # Get NWS grid
             nws_data = get_nws_grid(lat, lon)
             
-            # Get METAR station
-            metar_station, metar_name = find_metar_stations(lat, lon)
+            # Get METAR station (use preset map if available, otherwise find nearest)
+            if site in SITE_METAR_MAP:
+                metar_station = SITE_METAR_MAP[site]
+                metar_name = site
+                logger.info(f"🔵 Site: {site} → METAR station (preset): {metar_station}")
+            else:
+                metar_station, metar_name = find_metar_stations(lat, lon)
+                logger.info(f"🔵 Site: Custom → METAR station (API lookup): {metar_station} ({metar_name})")
             
-            logger.info(f"METAR: {metar_station} ({metar_name}), NWS: {nws_data}")
+            logger.info(f"🔵 Coordinates: {lat:.4f}, {lon:.4f}")
+            logger.info(f"🔵 Flight time: {naive_time.strftime('%Y-%m-%d %H:%M %Z')}")
+            logger.info(f"🔵 Time delta: {delta}")
+            logger.info(f"🔵 NWS Grid: {nws_data.get('office') if nws_data else 'None'}")
             
-            # Fetch weather data
+            # Fetch weather data with priority: METAR -> TAF -> NWS
             source = "unavailable"
             cloud_base = 10000
             visibility = 0.0
             wind_mph = 0.0
             condition = "Unknown"
+            taf_station = metar_station
             
-            # Try METAR if within 2 hours
-            if delta <= timedelta(hours=2) and metar_station:
+            logger.info(f"Starting weather data fetch. METAR station: {metar_station}, TAF station: {taf_station}")
+            
+            # 1. Try METAR first - but only if within 2 hours (METAR is current conditions)
+            metar_valid_for_future = delta <= timedelta(hours=2)
+            if metar_station and metar_valid_for_future:
+                logger.info(f"[1/3] Attempting METAR from {metar_station}... (within 2hr window)")
                 metar_data = get_metar(metar_station)
                 if metar_data:
                     cloud_base = metar_data["cloud_base"]
@@ -246,19 +434,54 @@ def index():
                     wind_mph = metar_data["wind_mph"]
                     condition = metar_data["condition"]
                     source = "metar"
-                    logger.info(f"Using METAR: {metar_station}")
+                    logger.info(f"[✓] SUCCESS: Using METAR from {metar_station}")
+                else:
+                    logger.info(f"[✗] FAILED: METAR from {metar_station} returned None, moving to TAF")
+            elif metar_station and not metar_valid_for_future:
+                logger.info(f"[1/3] SKIPPED: METAR query outside 2-hour window (delta: {delta}), using TAF for future time")
+            else:
+                logger.warning("[✗] SKIPPED: No METAR station available")
             
-            # Try NWS forecast if no METAR
-            if source == "unavailable" and nws_data and nws_data.get('forecast_hourly'):
-                periods = get_forecast(nws_data['forecast_hourly'])
-                if periods:
-                    closest = min(periods, key=lambda p: abs(isoparse(p["startTime"]) - selected_time))
-                    wind_mph = parse_forecast_wind(closest.get("windSpeed", ""))
-                    visibility = 10.0
-                    cloud_base = 10000
-                    condition = closest.get("shortForecast", "Unknown")
-                    source = "forecast"
-                    logger.info(f"Using NWS forecast: {condition}")
+            # 2. Try TAF if METAR failed or was invalid for future time
+            # TAF is valid for approximately 30 hours
+            taf_valid_for_future = delta <= timedelta(hours=30)
+            if source == "unavailable" and taf_station and taf_valid_for_future:
+                logger.info(f"[2/3] Attempting TAF from {taf_station}... (within 30hr window)")
+                taf_data = get_taf(taf_station)
+                if taf_data:
+                    cloud_base = taf_data["cloud_base"]
+                    visibility = taf_data["visibility"]
+                    wind_mph = taf_data["wind_mph"]
+                    condition = taf_data["condition"]
+                    source = "taf"
+                    logger.info(f"[✓] SUCCESS: Using TAF from {taf_station}")
+                else:
+                    logger.info(f"[✗] FAILED: TAF from {taf_station} returned None, moving to NWS")
+            elif source == "unavailable" and taf_station and not taf_valid_for_future:
+                logger.info(f"[2/3] SKIPPED: TAF query outside 30-hour window (delta: {delta}), using NWS for extended forecast")
+            elif source != "unavailable":
+                logger.info(f"[2/3] SKIPPED: Already have {source} data")
+            else:
+                logger.warning("[✗] SKIPPED: No TAF station available")
+            
+            # 3. Try NWS forecast if METAR and TAF failed
+            if source == "unavailable":
+                if nws_data and nws_data.get('forecast_hourly'):
+                    logger.info(f"[3/3] Attempting NWS forecast from {nws_data.get('office', 'unknown')}...")
+                    periods = get_forecast(nws_data['forecast_hourly'])
+                    if periods:
+                        logger.info(f"[3/3] NWS returned {len(periods)} forecast periods")
+                        closest = min(periods, key=lambda p: abs(isoparse(p["startTime"]) - selected_time))
+                        wind_mph = parse_forecast_wind(closest.get("windSpeed", ""))
+                        visibility = 10.0
+                        cloud_base = 10000
+                        condition = closest.get("shortForecast", "Unknown")
+                        source = "forecast"
+                        logger.info(f"[✓] SUCCESS: Using NWS forecast")
+                    else:
+                        logger.warning("[✗] NWS forecast returned empty periods")
+                else:
+                    logger.warning("[✗] SKIPPED: No NWS data available")
             
             # Get sunrise/sunset
             sunrise, sunset = get_sunrise_sunset(lat, lon, date_str)
@@ -295,10 +518,11 @@ def index():
                 "cloud_base": cloud_base,
                 "cloud_label": f"{cloud_base} ft" if cloud_base < 10000 else "Clear",
                 "visibility": f"{visibility:.1f} statute miles",
+                "wind_mph": wind_mph,
                 "wind_metar": f"{wind_mph} mph" if source == "metar" else "N/A",
                 "wind_forecast": f"{wind_mph} mph" if source != "metar" else "N/A",
                 "condition": condition,
-                "source": source,
+                "source": "NWS" if source == "forecast" else source.upper(),
                 "wind_pass": wind_mph <= MAX_WIND_MPH,
                 "visibility_pass": visibility >= MIN_VISIBILITY_SM,
                 "cloud_pass": cloud_base >= MIN_CLOUD_BASE_FT,
@@ -309,8 +533,9 @@ def index():
                 "sunset": sunset.astimezone(central).strftime('%I:%M %p CST') if sunset else "N/A",
                 "flight_time_remaining": flight_time_remaining,
                 "station_used": f"{metar_station} ({metar_name})" if metar_station else "N/A",
-                "taf_used": "N/A",
-                "forecast_url_used": nws_data.get('forecast_hourly', 'N/A') if nws_data else "N/A"
+                "taf_used": taf_station if source == "taf" else "N/A",
+                "forecast_url_used": nws_data.get('forecast_hourly', 'N/A') if nws_data else "N/A",
+                "metar_taf_link": f"https://metar-taf.com/{metar_station}" if metar_station else ""
             }
         
         except Exception as e:
