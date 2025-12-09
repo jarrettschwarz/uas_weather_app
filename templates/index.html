@@ -128,6 +128,26 @@
             box-shadow: 0 4px 12px rgba(255, 102, 0, 0.25);
         }
         
+        #geolocationBtn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #geolocationBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #1a1a1a 0%, #404040 100%) !important;
+        }
+        
+        #geolocationBtn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        #geolocationBtn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
         .coordinate-inputs {
             display: none;
             background: #f9f9f9;
@@ -194,13 +214,18 @@
         <div class="form-card">
             <form method="post">
                 <div style="background: linear-gradient(135deg, rgba(255, 102, 0, 0.08) 0%, rgba(255, 133, 51, 0.08) 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
-                    <label class="form-label" style="font-weight: 700; font-size: 0.95rem;">📍 Select Location</label>
-                    <select name="site" id="site" class="form-select location-input" style="height: 48px; font-size: 1rem; font-weight: 500;" onchange="toggleCustomCoords(this.value)" required>
-                        <option value="">-- Choose a site --</option>
-                        {% for site in flight_sites %}
-                            <option value="{{ site }}">{{ site }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.95rem;">📍 Select Location</label>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <select name="site" id="site" class="form-select location-input" style="height: 48px; font-size: 1rem; font-weight: 500; flex: 1;" onchange="toggleCustomCoords(this.value)" required>
+                                <option value="">-- Choose a site --</option>
+                                {% for site in flight_sites %}
+                                    <option value="{{ site }}">{{ site }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" id="geolocationBtn" class="btn btn-secondary" style="white-space: nowrap; background: linear-gradient(135deg, #333333 0%, #555555 100%); border: none; border-radius: 8px; padding: 0.75rem 1.5rem; font-weight: 600; color: white; cursor: pointer; transition: all 0.3s ease;" title="Use your device's current location">📍 Use Device Location</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Custom Coordinates Section -->
@@ -359,6 +384,67 @@
             document.getElementById("decimalSection").style.display = format === "decimal" ? "block" : "none";
             document.getElementById("dmsSection").style.display = format === "dms" ? "block" : "none";
         }
+        
+        // Geolocation functionality
+        document.getElementById("geolocationBtn").addEventListener("click", function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = "🔍 Getting location...";
+            
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lon = position.coords.longitude.toFixed(6);
+                        
+                        // Switch to Custom location
+                        const siteSelect = document.getElementById("site");
+                        siteSelect.value = "Custom";
+                        toggleCustomCoords("Custom");
+                        
+                        // Set coordinate format to decimal (if not already)
+                        const coordFormat = document.getElementById("coordFormat");
+                        coordFormat.value = "decimal";
+                        toggleCoordFormat();
+                        
+                        // Populate the coordinate fields
+                        document.querySelector('input[name="lat_decimal"]').value = lat;
+                        document.querySelector('input[name="lon_decimal"]').value = lon;
+                        
+                        // Scroll to coordinates section so user can see
+                        document.getElementById("customCoords").scrollIntoView({ behavior: "smooth", block: "nearest" });
+                        
+                        btn.disabled = false;
+                        btn.textContent = "✅ Location found!";
+                        setTimeout(() => {
+                            btn.textContent = "📍 Use Device Location";
+                        }, 2000);
+                    },
+                    function(error) {
+                        console.error("Geolocation error:", error);
+                        let errorMsg = "Unable to get location";
+                        
+                        if (error.code === error.PERMISSION_DENIED) {
+                            errorMsg = "Location permission denied";
+                        } else if (error.code === error.POSITION_UNAVAILABLE) {
+                            errorMsg = "Location unavailable";
+                        } else if (error.code === error.TIMEOUT) {
+                            errorMsg = "Location request timed out";
+                        }
+                        
+                        alert("Error: " + errorMsg + ". Please enable location services and try again.");
+                        btn.disabled = false;
+                        btn.textContent = "📍 Use Device Location";
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser. Please enable location services.");
+                btn.disabled = false;
+                btn.textContent = "📍 Use Device Location";
+            }
+        });
+
     </script>
 </body>
 </html>
