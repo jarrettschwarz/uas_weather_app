@@ -236,8 +236,10 @@
         
         .scroll-item.active {
             color: #000000;
-            background: rgba(255, 102, 0, 0.1);
-            border-color: #FF6600;
+            background: rgba(255, 102, 0, 0.25);
+            border-top: 2px solid #FF6600;
+            border-bottom: 2px solid #FF6600;
+            font-weight: 700;
         }
         
         .scroll-wheel::before {
@@ -247,12 +249,13 @@
             left: 0;
             right: 0;
             height: 40px;
-            background: rgba(255, 102, 0, 0.15);
-            border-top: 2px solid #FF6600;
-            border-bottom: 2px solid #FF6600;
+            background: rgba(255, 102, 0, 0.2);
+            border-top: 3px solid #FF6600;
+            border-bottom: 3px solid #FF6600;
             transform: translateY(-50%);
             pointer-events: none;
             z-index: 10;
+            box-shadow: inset 0 0 10px rgba(255, 102, 0, 0.1);
         }
         
         .time-display {
@@ -373,10 +376,11 @@
                         <label class="form-label" style="font-weight: 700; font-size: 0.95rem;">📍 Select Location</label>
                         <div style="display: flex; gap: 0.75rem;">
                             <select name="site" id="site" class="form-select location-input" style="height: 48px; font-size: 1rem; font-weight: 500; flex: 1;" onchange="toggleCustomCoords(this.value)" required>
-                                <option value="">-- Choose a site --</option>
-                                {% for site in flight_sites %}
-                                    <option value="{{ site }}">{{ site }}</option>
-                                {% endfor %}
+                                <option value="UAFS">UAFS</option>
+                                <option value="CENFEX">CENFEX</option>
+                                <option value="Legion Field">Legion Field</option>
+                                <option value="SkyWay36">SkyWay36</option>
+                                <option value="Custom">Custom Location</option>
                             </select>
                             <button type="button" id="geolocationBtn" class="btn btn-secondary" style="white-space: nowrap; background: linear-gradient(135deg, #333333 0%, #555555 100%); border: none; border-radius: 8px; padding: 0.75rem 1.5rem; font-weight: 600; color: white; cursor: pointer; transition: all 0.3s ease;" title="Use your device's current location">📍 Use Device Location</button>
                         </div>
