@@ -20,6 +20,14 @@ MIN_VISIBILITY_SM = 3.0
 MIN_CLOUD_BASE_FT = 500
 BAD_CONDITIONS = ["rain", "snow", "fog", "thunderstorm", "mist"]
 
+# Preset flight sites
+FLIGHT_SITES = {
+    "UAFS": {"lat": 36.162101, "lon": -96.835504},
+    "CENFEX": {"lat": 36.357214, "lon": -96.861901},
+    "Legion Field": {"lat": 34.723543, "lon": -98.387076},
+    "SkyWay36": {"lat": 36.210521, "lon": -96.008673}
+}
+
 # Cache for NWS points to avoid excessive API calls
 nws_cache = {}
 
@@ -168,7 +176,11 @@ def index():
             time_str = request.form.get("flight_time", "")
             
             # Parse coordinates
-            if site == "Custom":
+            if site in FLIGHT_SITES:
+                lat = FLIGHT_SITES[site]["lat"]
+                lon = FLIGHT_SITES[site]["lon"]
+                location_name = site
+            elif site == "Custom":
                 coord_format = request.form.get("coordFormat", "decimal")
                 
                 if coord_format == "decimal":
@@ -190,7 +202,12 @@ def index():
                 
                 if lat is None or lon is None or not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
                     error = "Invalid coordinates"
-                    return render_template("index.html", result=None, selected_coords=None, flight_sites=["Custom"], pytz=pytz, error=error)
+                    return render_template("index.html", result=None, selected_coords=None, flight_sites=list(FLIGHT_SITES.keys()) + ["Custom"], pytz=pytz, error=error)
+                
+                location_name = f"{lat:.4f}, {lon:.4f}"
+            else:
+                error = "Invalid site selection"
+                return render_template("index.html", result=None, selected_coords=None, flight_sites=list(FLIGHT_SITES.keys()) + ["Custom"], pytz=pytz, error=error)
             
             selected_coords = {"lat": lat, "lon": lon}
             
@@ -300,7 +317,7 @@ def index():
             logger.error(f"Error: {e}", exc_info=True)
             error = str(e)
     
-    return render_template("index.html", result=result, selected_coords=selected_coords, flight_sites=["Custom"], pytz=pytz, error=error)
+    return render_template("index.html", result=result, selected_coords=selected_coords, flight_sites=list(FLIGHT_SITES.keys()) + ["Custom"], pytz=pytz, error=error)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
