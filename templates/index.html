@@ -108,164 +108,9 @@
             color: #999;
         }
         
-        /* Flatpickr custom styling */
-        .flatpickr-calendar {
-            background: white;
-            border: 2px solid #000000;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .flatpickr-time {
-            background: white;
-            border-top: 1px solid #eee;
-            padding: 1rem;
-        }
-        
-        .flatpickr-time input {
-            background: white;
-            color: #2c3e50;
-            border: 1px solid #000000;
-            border-radius: 4px;
-            padding: 0.5rem;
-            font-weight: 500;
-        }
-        
-        .flatpickr-time input:focus {
-            border-color: #FF6600;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.1);
-        }
-        
-        .flatpickr-time .flatpickr-am-pm {
-            background: white;
-            color: #2c3e50;
-            border: 1px solid #000000;
-            border-radius: 4px;
-            padding: 0.5rem;
-            font-weight: 500;
-        }
-        
-        .flatpickr-time .flatpickr-am-pm:hover {
-            background: #FFF4E6;
-            border-color: #FF6600;
-        }
-        
-        .flatpickr-time .flatpickr-am-pm.active {
-            background: #FF6600;
-            border-color: #FF6600;
-            color: white;
-        }
-        
-        .numInput {
-            background: white !important;
-            color: #2c3e50 !important;
-            border: 1px solid #000000 !important;
-            border-radius: 4px !important;
-            padding: 0.5rem !important;
-            font-weight: 500 !important;
-        }
-        
-        .numInput:focus {
-            border-color: #FF6600 !important;
-            box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.1) !important;
-        }
-        
-        /* Custom Time Picker Scroll Wheel */
-        .time-picker-wheel {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            align-items: center;
-            background: #FFF4E6;
-            border: 2px solid #000000;
-            border-radius: 12px;
-            padding: 1rem;
-            margin-top: 0.5rem;
-        }
-        
-        .wheel-column {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .wheel-column label {
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: #000000;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .scroll-wheel {
-            width: 70px;
-            height: 200px;
-            border: 2px solid #000000;
-            border-radius: 8px;
-            overflow: hidden;
-            background: white;
-            position: relative;
-            cursor: grab;
-            user-select: none;
-        }
-        
-        .scroll-wheel:active {
-            cursor: grabbing;
-        }
-        
-        .scroll-wheel-inner {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .scroll-item {
-            flex: 0 0 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1.2rem;
-            color: #999;
-            border-bottom: 1px solid #f0f0f0;
-            transition: color 0.1s;
-        }
-        
-        .scroll-item.active {
-            color: #000000;
-            background: rgba(255, 102, 0, 0.25);
-            border-top: 2px solid #FF6600;
-            border-bottom: 2px solid #FF6600;
-            font-weight: 700;
-        }
-        
-        .scroll-wheel::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: rgba(255, 102, 0, 0.2);
-            border-top: 3px solid #FF6600;
-            border-bottom: 3px solid #FF6600;
-            transform: translateY(-50%);
-            pointer-events: none;
-            z-index: 10;
-            box-shadow: inset 0 0 10px rgba(255, 102, 0, 0.1);
-        }
-        
-        .time-display {
-            text-align: center;
-            margin-top: 0.75rem;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #2c3e50;
-        }
-        
+
+
+
         .btn-primary {
             background: linear-gradient(135deg, #FF6600 0%, #FF8533 100%);
             border: none;
@@ -353,10 +198,6 @@
             display: block;
         }
         
-        .source-badge {
-            font-size: 0.85rem;
-            padding: 0.25rem 0.75rem;
-        }
     </style>
 </head>
 <body>
@@ -442,29 +283,19 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" style="font-weight: 700; font-size: 0.95rem;">🕐 Flight Time (CST)</label>
-                            <div class="time-picker-wheel">
-                                <div class="wheel-column">
-                                    <label>Hour</label>
-                                    <div class="scroll-wheel" id="hourWheel">
-                                        <div class="scroll-wheel-inner" id="hourInner"></div>
-                                    </div>
-                                </div>
-                                <div style="font-weight: 700; font-size: 1.5rem; color: #000000; margin-top: 1.5rem;">:</div>
-                                <div class="wheel-column">
-                                    <label>Min</label>
-                                    <div class="scroll-wheel" id="minuteWheel">
-                                        <div class="scroll-wheel-inner" id="minuteInner"></div>
-                                    </div>
-                                </div>
-                                <div class="wheel-column">
-                                    <label>Period</label>
-                                    <div class="scroll-wheel" id="periodWheel" style="width: 60px;">
-                                        <div class="scroll-wheel-inner" id="periodInner"></div>
-                                    </div>
-                                </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <select id="hourSelect" class="form-select" style="border: 2px solid #000; height: 48px; font-weight: 600; flex: 0 0 auto; width: 85px;">
+                                    <option value="">--</option>
+                                </select>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #000;">:</div>
+                                <select id="minuteSelect" class="form-select" style="border: 2px solid #000; height: 48px; font-weight: 600; flex: 0 0 auto; width: 85px;">
+                                    <option value="">--</option>
+                                </select>
+                                <select id="periodSelect" class="form-select" style="border: 2px solid #000; height: 48px; font-weight: 600; flex: 0 0 auto; width: 85px;">
+                                    <option value="">--</option>
+                                </select>
                             </div>
-                            <div class="time-display">Selected: <span id="timeDisplay">09:00 AM</span></div>
-                            <input type="hidden" id="flight_time" name="flight_time" value="09:00" required>
+                            <input type="hidden" id="flight_time" name="flight_time" value="" required>
                         </div>
                     </div>
                 </div>
@@ -499,8 +330,8 @@
             <h5>Flight Conditions</h5>
             <p style="margin: 0; color: #666; font-size: 0.9rem;">
                 {{ result.datetime_cst }}<br>
-                <strong>Location:</strong> {{ selected_coords.lat | dms }} {{ selected_coords.lon | dms }}<br>
-                <span class="source-badge bg-info text-white">Source: {{ result.source | upper }}</span>
+                <strong>Location:</strong> {% if result.site in ['UAFS', 'CENFEX', 'Legion Field', 'SkyWay36'] %}{{ result.site }} ({{ selected_coords.lat | dms }} {{ selected_coords.lon | dms }}){% else %}{{ selected_coords.lat | dms }} {{ selected_coords.lon | dms }}{% endif %}<br>
+                <strong>Source:</strong> {{ result.source }}
             </p>
             <ul class="info-list" style="margin-top: 1rem;">
                 <li>
@@ -549,6 +380,7 @@
                 <li><strong>METAR Station:</strong> {{ result.station_used }}</li>
                 <li><strong>TAF Station:</strong> {{ result.taf_used }}</li>
                 <li><strong>NWS Forecast:</strong> <a href="{{ result.forecast_url_used }}" target="_blank" style="word-break: break-all;">{{ result.forecast_url_used }}</a></li>
+                {% if result.metar_taf_link %}<li><strong>Live Data:</strong> <a href="{{ result.metar_taf_link }}" target="_blank">METAR/TAF on metar-taf.com</a></li>{% endif %}
             </ul>
         </div>
         {% endif %}
@@ -628,121 +460,70 @@
 
     </script>
     <script>
-        // Ultra-lightweight scroll wheel (no lag)
-        class TimePickerWheel {
+        // Time picker with dropdowns
+        class TimePicker {
             constructor() {
-                this.hours = Array.from({length: 12}, (_, i) => String(i + 1).padStart(2, '0'));
-                this.minutes = Array.from({length: 60}, (_, i) => String(i).padStart(2, '0'));
-                this.periods = ['AM', 'PM'];
-                
-                this.state = { hour: 9, minute: 0, period: 0 };
-                this.wheels = {};
+                this.hourSelect = document.getElementById('hourSelect');
+                this.minuteSelect = document.getElementById('minuteSelect');
+                this.periodSelect = document.getElementById('periodSelect');
                 
                 this.init();
             }
             
             init() {
-                this.createWheel('hourWheel', 'hourInner', this.hours, 8);
-                this.createWheel('minuteWheel', 'minuteInner', this.minutes, 0);
-                this.createWheel('periodWheel', 'periodInner', this.periods, 0);
-                this.render();
-            }
-            
-            createWheel(wheelId, innerId, items, initialIndex) {
-                const inner = document.getElementById(innerId);
-                const wheel = document.getElementById(wheelId);
+                // Populate hours 1-12
+                for (let i = 1; i <= 12; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = String(i).padStart(2, '0');
+                    opt.textContent = String(i).padStart(2, '0');
+                    this.hourSelect.appendChild(opt);
+                }
                 
-                items.forEach((item, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'scroll-item';
-                    div.textContent = item;
-                    div.dataset.index = i;
-                    inner.appendChild(div);
+                // Populate minutes 0-59
+                for (let i = 0; i < 60; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = String(i).padStart(2, '0');
+                    opt.textContent = String(i).padStart(2, '0');
+                    this.minuteSelect.appendChild(opt);
+                }
+                
+                // Populate AM/PM
+                ['AM', 'PM'].forEach(period => {
+                    const opt = document.createElement('option');
+                    opt.value = period;
+                    opt.textContent = period;
+                    this.periodSelect.appendChild(opt);
                 });
                 
-                this.wheels[wheelId] = { inner, wheel, items, isDragging: false, startY: 0, offset: 0 };
+                // Set defaults
+                this.hourSelect.value = '11';
+                this.minuteSelect.value = '02';
+                this.periodSelect.value = 'AM';
                 
-                wheel.addEventListener('mousedown', (e) => this.dragStart(wheelId, e.clientY));
-                wheel.addEventListener('touchstart', (e) => this.dragStart(wheelId, e.touches[0].clientY), {passive: true});
-                document.addEventListener('mousemove', (e) => this.drag(e.clientY));
-                document.addEventListener('touchmove', (e) => this.drag(e.touches[0].clientY), {passive: true});
-                document.addEventListener('mouseup', () => this.dragEnd());
-                document.addEventListener('touchend', () => this.dragEnd());
+                // Listen for changes
+                this.hourSelect.addEventListener('change', () => this.updateTime());
+                this.minuteSelect.addEventListener('change', () => this.updateTime());
+                this.periodSelect.addEventListener('change', () => this.updateTime());
                 
-                this.snapTo(wheelId, initialIndex);
+                this.updateTime();
             }
             
-            dragStart(wheelId, y) {
-                const w = this.wheels[wheelId];
-                w.isDragging = true;
-                w.startY = y;
-                w.startOffset = w.offset;
-                this.currentWheel = wheelId;
-            }
-            
-            drag(y) {
-                if (!this.currentWheel) return;
-                const w = this.wheels[this.currentWheel];
-                if (!w.isDragging) return;
-                
-                const diff = y - w.startY;
-                const newOffset = w.startOffset + diff;
-                const maxOffset = 0;
-                const minOffset = -(w.items.length - 1) * 40;
-                
-                w.offset = Math.max(minOffset, Math.min(maxOffset, newOffset));
-                w.inner.style.transform = `translateY(${w.offset}px)`;
-            }
-            
-            dragEnd() {
-                if (!this.currentWheel) return;
-                const w = this.wheels[this.currentWheel];
-                w.isDragging = false;
-                
-                const index = Math.round(-w.offset / 40);
-                this.snapTo(this.currentWheel, index);
-                this.updateState(this.currentWheel, index);
-                this.currentWheel = null;
-            }
-            
-            snapTo(wheelId, index) {
-                const w = this.wheels[wheelId];
-                const targetOffset = -index * 40;
-                w.offset = targetOffset;
-                w.inner.style.transform = `translateY(${targetOffset}px)`;
-                
-                // Update active styling
-                w.inner.querySelectorAll('.scroll-item').forEach((item, i) => {
-                    item.classList.toggle('active', i === index);
-                });
-            }
-            
-            updateState(wheelId, index) {
-                if (wheelId === 'hourWheel') this.state.hour = parseInt(this.hours[index]);
-                else if (wheelId === 'minuteWheel') this.state.minute = parseInt(this.minutes[index]);
-                else if (wheelId === 'periodWheel') this.state.period = index;
-                
-                this.render();
-            }
-            
-            render() {
-                const h = String(this.state.hour).padStart(2, '0');
-                const m = String(this.state.minute).padStart(2, '0');
-                const p = this.periods[this.state.period];
-                
-                document.getElementById('timeDisplay').textContent = `${h}:${m} ${p}`;
+            updateTime() {
+                const h = this.hourSelect.value;
+                const m = this.minuteSelect.value;
+                const p = this.periodSelect.value;
                 
                 // Convert to 24-hour
-                let hour24 = this.state.hour;
+                let hour24 = parseInt(h);
                 if (p === 'AM' && hour24 === 12) hour24 = 0;
                 if (p === 'PM' && hour24 !== 12) hour24 += 12;
                 
-                document.getElementById('flight_time').value = `${String(hour24).padStart(2, '0')}:${String(this.state.minute).padStart(2, '0')}`;
+                document.getElementById('flight_time').value = `${String(hour24).padStart(2, '0')}:${m}`;
             }
         }
         
         document.addEventListener('DOMContentLoaded', () => {
-            new TimePickerWheel();
+            new TimePicker();
         });
     </script>
 </body>
