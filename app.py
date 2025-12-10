@@ -15,7 +15,7 @@ app = Flask(__name__)
 app.jinja_env.filters['dms'] = lambda deg: f"{int(abs(deg))}°{int((abs(deg)%1)*60)}'{((abs(deg)*3600)%60):.1f}\"{'N' if deg>=0 else 'S'}" if deg else ""
 
 HEADERS = {"User-Agent": "UAS-Weather-Check"}
-MAX_WIND_MPH = 15.7
+MAX_WIND_MPH = 20
 MIN_VISIBILITY_SM = 3.0
 MIN_CLOUD_BASE_FT = 500
 BAD_CONDITIONS = ["rain", "snow", "fog", "thunderstorm", "mist"]
