@@ -3,7 +3,7 @@
 <head>
     <title>UAS Weather Check</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
             padding: 2rem;
@@ -11,18 +11,18 @@
             background: linear-gradient(135deg, #FFF4E6 0%, #FFF8F0 100%);
             min-height: 100vh;
         }
-        
+
         h2 {
             text-align: center;
             margin-bottom: 2rem;
             color: #FF6600;
             font-weight: 700;
         }
-        
+
         .container {
             max-width: 800px;
         }
-        
+
         .form-card {
             background: white;
             border-radius: 12px;
@@ -31,7 +31,7 @@
             margin-bottom: 2rem;
             border: 2px solid #000000;
         }
-        
+
         .box {
             background: white;
             border-radius: 12px;
@@ -40,76 +40,78 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             border-left: 4px solid #000000;
         }
-        
+
         .box.decision {
             border-left: 4px solid transparent;
         }
-        
+
         .box.decision.go {
             background: #d4edda;
             border-color: #28a745;
         }
-        
+
         .box.decision.nogo {
             background: #f8d7da;
             border-color: #dc3545;
         }
-        
+
         .check-pass {
             color: #28a745;
             font-weight: 600;
         }
-        
+
         .check-fail {
             color: #dc3545;
             font-weight: 600;
         }
-        
+
+        .check-unknown {
+            color: #b58900;
+            font-weight: 600;
+        }
+
         .badge-large {
             font-size: 1.2rem;
             padding: 0.75rem 1.5rem;
         }
-        
+
         .form-label {
             font-weight: 600;
             color: #2c3e50;
             margin-bottom: 0.5rem;
         }
-        
+
         .form-control, .form-select {
             border-radius: 8px;
             border: 1px solid #000000;
         }
-        
+
         .form-control:focus, .form-select:focus {
             border-color: #FF6600;
             box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.15);
         }
-        
+
         .datetime-input, .location-input {
             border: 2px solid #000000 !important;
             background: white;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             color: #2c3e50;
         }
-        
+
         .datetime-input:hover, .location-input:hover {
             border-color: #333333 !important;
             box-shadow: 0 2px 8px rgba(255, 102, 0, 0.15) !important;
         }
-        
+
         .datetime-input:focus, .location-input:focus {
             border-color: #FF6600 !important;
             box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1) !important;
             outline: none;
         }
-        
+
         .datetime-input::placeholder {
             color: #999;
         }
-        
-
-
 
         .btn-primary {
             background: linear-gradient(135deg, #FF6600 0%, #FF8533 100%);
@@ -120,37 +122,37 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             margin-top: 1rem;
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(255, 102, 0, 0.35);
         }
-        
+
         .btn-primary:active {
             transform: translateY(0);
             box-shadow: 0 4px 12px rgba(255, 102, 0, 0.25);
         }
-        
+
         #geolocationBtn {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         #geolocationBtn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             background: linear-gradient(135deg, #1a1a1a 0%, #404040 100%) !important;
         }
-        
+
         #geolocationBtn:active:not(:disabled) {
             transform: translateY(0);
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         }
-        
+
         #geolocationBtn:disabled {
             opacity: 0.7;
             cursor: not-allowed;
         }
-        
+
         .coordinate-inputs {
             display: none;
             background: #f9f9f9;
@@ -158,58 +160,57 @@
             border-radius: 8px;
             margin-top: 1rem;
         }
-        
+
         .coordinate-inputs.show {
             display: block;
         }
-        
+
         .dms-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 0.75rem;
             margin-bottom: 1rem;
         }
-        
+
         .dms-row .form-control, .dms-row .form-select {
             padding: 0.5rem;
             font-size: 0.9rem;
         }
-        
+
         .info-list {
             list-style: none;
             padding: 0;
         }
-        
+
         .info-list li {
             padding: 0.5rem 0;
             border-bottom: 1px solid #eee;
         }
-        
+
         .info-list li:last-child {
             border-bottom: none;
         }
-        
+
         .error-alert {
             display: none;
             margin-bottom: 1.5rem;
         }
-        
+
         .error-alert.show {
             display: block;
         }
-        
     </style>
 </head>
 <body>
     <div class="container">
         <h2>✈️ UAS Weather Check</h2>
-        
+
         {% if error %}
         <div class="alert alert-danger error-alert show" role="alert">
             <strong>Error:</strong> {{ error }}
         </div>
         {% endif %}
-        
+
         <div class="form-card">
             <form method="post">
                 <div style="background: linear-gradient(135deg, rgba(255, 102, 0, 0.08) 0%, rgba(255, 133, 51, 0.08) 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
@@ -227,7 +228,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Custom Coordinates Section -->
                 <div id="customCoords" class="coordinate-inputs">
                     <div class="mb-3">
@@ -237,7 +238,7 @@
                             <option value="dms">Degrees Minutes Seconds (DMS)</option>
                         </select>
                     </div>
-                    
+
                     <!-- Decimal Input -->
                     <div id="decimalSection">
                         <div class="mb-2">
@@ -247,7 +248,7 @@
                             <input type="text" name="lon_decimal" placeholder="Longitude" class="form-control">
                         </div>
                     </div>
-                    
+
                     <!-- DMS Input -->
                     <div id="dmsSection" style="display: none;">
                         <label class="form-label">Latitude:</label>
@@ -260,7 +261,7 @@
                                 <option value="S">S</option>
                             </select>
                         </div>
-                        
+
                         <label class="form-label">Longitude:</label>
                         <div class="dms-row">
                             <input type="number" name="lon_deg" placeholder="Deg" class="form-control" min="0" max="180">
@@ -268,12 +269,12 @@
                             <input type="number" name="lon_sec" placeholder="Sec" class="form-control" min="0" max="59" step="0.1">
                             <select name="lon_dir" class="form-select">
                                 <option value="E">E</option>
-                                <option value="W">W</option>
+                                <option value="W" selected>W</option>
                             </select>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Date/Time Section -->
                 <div style="background: linear-gradient(135deg, rgba(255, 102, 0, 0.08) 0%, rgba(255, 133, 51, 0.08) 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0;">
                     <div class="row g-3">
@@ -299,11 +300,11 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary w-100">Check Weather</button>
             </form>
         </div>
-        
+
         {% if result %}
         <!-- Decision Box -->
         <div class="box decision {% if result.go_nogo == 'Go' %}go{% else %}nogo{% endif %}">
@@ -323,44 +324,73 @@
                 </ul>
             </div>
             {% endif %}
+            {% if result.data_caveat %}
+            <div class="alert alert-warning mt-3 mb-0">
+                <strong>Note:</strong> {{ result.data_caveat }}
+            </div>
+            {% endif %}
         </div>
-        
+
         <!-- Flight Conditions -->
         <div class="box">
             <h5>Flight Conditions</h5>
             <p style="margin: 0; color: #666; font-size: 0.9rem;">
                 {{ result.datetime_cst }}<br>
-                <strong>Location:</strong> {% if result.site in ['UAFS', 'CENFEX', 'Legion Field', 'SkyWay36'] %}{{ result.site }} ({{ selected_coords.lat | dms }} {{ selected_coords.lon | dms }}){% else %}{{ selected_coords.lat | dms }} {{ selected_coords.lon | dms }}{% endif %}<br>
-                <strong>Source:</strong> {{ result.source }}
+                <strong>Location:</strong>
+                {% if result.site in ['UAFS', 'CENFEX', 'Legion Field', 'SkyWay36'] %}
+                    {{ result.site }} ({{ selected_coords.lat | dms_lat }} {{ selected_coords.lon | dms_lon }})
+                {% else %}
+                    {{ selected_coords.lat | dms_lat }} {{ selected_coords.lon | dms_lon }}
+                {% endif %}
+                <br>
+                <strong>Source:</strong>
+                {% if result.source == 'metar' %}METAR (current observation)
+                {% elif result.source == 'taf' %}TAF (terminal forecast)
+                {% elif result.source == 'forecast' %}NWS Hourly Forecast
+                {% else %}Unavailable
+                {% endif %}
             </p>
             <ul class="info-list" style="margin-top: 1rem;">
                 <li>
-                    <strong>Forecast:</strong> 
+                    <strong>Forecast:</strong>
                     <span class="{% if result.condition_pass %}check-pass{% else %}check-fail{% endif %}">
-                        {{ result.condition }}
+                        {{ result.forecast or result.condition or 'Unknown' }}
                     </span>
                 </li>
                 <li>
-                    <strong>Visibility:</strong> 
-                    <span class="{% if result.visibility_pass %}check-pass{% else %}check-fail{% endif %}">
-                        {{ result.visibility }}
-                    </span>
+                    <strong>Visibility:</strong>
+                    {% if result.visibility == 'Unknown' %}
+                        <span class="check-unknown">{{ result.visibility }}</span>
+                    {% else %}
+                        <span class="{% if result.visibility_pass %}check-pass{% else %}check-fail{% endif %}">{{ result.visibility }}</span>
+                    {% endif %}
                 </li>
                 <li>
-                    <strong>Cloud Base:</strong> 
-                    <span class="{% if result.cloud_pass %}check-pass{% else %}check-fail{% endif %}">
-                        {{ result.cloud_label }}
-                    </span>
+                    <strong>Cloud Base:</strong>
+                    {% if result.cloud_label == 'Unknown' %}
+                        <span class="check-unknown">{{ result.cloud_label }}</span>
+                    {% else %}
+                        <span class="{% if result.cloud_pass %}check-pass{% else %}check-fail{% endif %}">{{ result.cloud_label }}</span>
+                    {% endif %}
                 </li>
                 <li>
-                    <strong>Wind:</strong> 
-                    <span class="{% if result.wind_pass %}check-pass{% else %}check-fail{% endif %}">
-                        {{ result.wind_mph }} mph
-                    </span>
+                    <strong>Wind:</strong>
+                    {% if result.wind_display == 'Unknown' %}
+                        <span class="check-unknown">{{ result.wind_display }}</span>
+                    {% else %}
+                        <span class="{% if result.wind_pass %}check-pass{% else %}check-fail{% endif %}">{{ result.wind_display }}</span>
+                    {% endif %}
                 </li>
             </ul>
+            {% if result.thresholds %}
+            <small class="text-muted">
+                Limits: wind ≤ {{ result.thresholds.max_wind }} mph,
+                visibility ≥ {{ result.thresholds.min_vis }} sm,
+                cloud base ≥ {{ result.thresholds.min_cloud }} ft AGL
+            </small>
+            {% endif %}
         </div>
-        
+
         <!-- Sunrise/Sunset -->
         <div class="box">
             <h5>Daylight Times</h5>
@@ -372,61 +402,63 @@
                 {% endif %}
             </ul>
         </div>
-        
+
         <!-- Data Sources -->
         <div class="box" style="border-left-color: #000000;">
             <h5>Data Sources Used</h5>
             <ul class="info-list" style="font-size: 0.9rem;">
                 <li><strong>METAR Station:</strong> {{ result.station_used }}</li>
                 <li><strong>TAF Station:</strong> {{ result.taf_used }}</li>
-                <li><strong>NWS Forecast:</strong> <a href="{{ result.forecast_url_used }}" target="_blank" style="word-break: break-all;">{{ result.forecast_url_used }}</a></li>
-                {% if result.metar_taf_link %}<li><strong>Live Data:</strong> <a href="{{ result.metar_taf_link }}" target="_blank">METAR/TAF on metar-taf.com</a></li>{% endif %}
+                <li><strong>NWS Forecast:</strong>
+                    {% if result.forecast_url_used and result.forecast_url_used != 'N/A' %}
+                        <a href="{{ result.forecast_url_used }}" target="_blank" rel="noopener" style="word-break: break-all;">{{ result.forecast_url_used }}</a>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </li>
+                {% if result.metar_taf_link %}<li><strong>Live Data:</strong> <a href="{{ result.metar_taf_link }}" target="_blank" rel="noopener">METAR/TAF on metar-taf.com</a></li>{% endif %}
             </ul>
         </div>
         {% endif %}
     </div>
-    
+
     <script>
         function toggleCustomCoords(value) {
             const customCoords = document.getElementById("customCoords");
             customCoords.classList.toggle("show", value === "Custom");
         }
-        
+
         function toggleCoordFormat() {
             const format = document.getElementById("coordFormat").value;
             document.getElementById("decimalSection").style.display = format === "decimal" ? "block" : "none";
             document.getElementById("dmsSection").style.display = format === "dms" ? "block" : "none";
         }
-        
+
         // Geolocation functionality
         document.getElementById("geolocationBtn").addEventListener("click", function() {
             const btn = this;
             btn.disabled = true;
             btn.textContent = "🔍 Getting location...";
-            
+
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     function(position) {
                         const lat = position.coords.latitude.toFixed(6);
                         const lon = position.coords.longitude.toFixed(6);
-                        
-                        // Switch to Custom location
+
                         const siteSelect = document.getElementById("site");
                         siteSelect.value = "Custom";
                         toggleCustomCoords("Custom");
-                        
-                        // Set coordinate format to decimal (if not already)
+
                         const coordFormat = document.getElementById("coordFormat");
                         coordFormat.value = "decimal";
                         toggleCoordFormat();
-                        
-                        // Populate the coordinate fields
+
                         document.querySelector('input[name="lat_decimal"]').value = lat;
                         document.querySelector('input[name="lon_decimal"]').value = lon;
-                        
-                        // Scroll to coordinates section so user can see
+
                         document.getElementById("customCoords").scrollIntoView({ behavior: "smooth", block: "nearest" });
-                        
+
                         btn.disabled = false;
                         btn.textContent = "✅ Location found!";
                         setTimeout(() => {
@@ -436,7 +468,7 @@
                     function(error) {
                         console.error("Geolocation error:", error);
                         let errorMsg = "Unable to get location";
-                        
+
                         if (error.code === error.PERMISSION_DENIED) {
                             errorMsg = "Location permission denied";
                         } else if (error.code === error.POSITION_UNAVAILABLE) {
@@ -444,7 +476,7 @@
                         } else if (error.code === error.TIMEOUT) {
                             errorMsg = "Location request timed out";
                         }
-                        
+
                         alert("Error: " + errorMsg + ". Please enable location services and try again.");
                         btn.disabled = false;
                         btn.textContent = "📍 Use Device Location";
@@ -457,7 +489,6 @@
                 btn.textContent = "📍 Use Device Location";
             }
         });
-
     </script>
     <script>
         // Time picker with dropdowns
@@ -466,62 +497,56 @@
                 this.hourSelect = document.getElementById('hourSelect');
                 this.minuteSelect = document.getElementById('minuteSelect');
                 this.periodSelect = document.getElementById('periodSelect');
-                
+
                 this.init();
             }
-            
+
             init() {
-                // Populate hours 1-12
                 for (let i = 1; i <= 12; i++) {
                     const opt = document.createElement('option');
                     opt.value = String(i).padStart(2, '0');
                     opt.textContent = String(i).padStart(2, '0');
                     this.hourSelect.appendChild(opt);
                 }
-                
-                // Populate minutes 0-59
+
                 for (let i = 0; i < 60; i++) {
                     const opt = document.createElement('option');
                     opt.value = String(i).padStart(2, '0');
                     opt.textContent = String(i).padStart(2, '0');
                     this.minuteSelect.appendChild(opt);
                 }
-                
-                // Populate AM/PM
+
                 ['AM', 'PM'].forEach(period => {
                     const opt = document.createElement('option');
                     opt.value = period;
                     opt.textContent = period;
                     this.periodSelect.appendChild(opt);
                 });
-                
-                // Set defaults
+
                 this.hourSelect.value = '11';
                 this.minuteSelect.value = '02';
                 this.periodSelect.value = 'AM';
-                
-                // Listen for changes
+
                 this.hourSelect.addEventListener('change', () => this.updateTime());
                 this.minuteSelect.addEventListener('change', () => this.updateTime());
                 this.periodSelect.addEventListener('change', () => this.updateTime());
-                
+
                 this.updateTime();
             }
-            
+
             updateTime() {
                 const h = this.hourSelect.value;
                 const m = this.minuteSelect.value;
                 const p = this.periodSelect.value;
-                
-                // Convert to 24-hour
+
                 let hour24 = parseInt(h);
                 if (p === 'AM' && hour24 === 12) hour24 = 0;
                 if (p === 'PM' && hour24 !== 12) hour24 += 12;
-                
+
                 document.getElementById('flight_time').value = `${String(hour24).padStart(2, '0')}:${m}`;
             }
         }
-        
+
         document.addEventListener('DOMContentLoaded', () => {
             new TimePicker();
         });
